@@ -1,42 +1,282 @@
 #root {
-  max-width: 1280px;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+}
+
+.game-container {
+  width: 100%;
+  max-width: 1600px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 20px;
   text-align: center;
+  display: flex;
+  gap: 20px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.game-main {
+  flex: 1;
+  min-width: 0;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+h1 {
+  color: #fff;
+  margin-bottom: 30px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.setup-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.player-input {
+  margin-bottom: 20px;
+}
+
+.player-input input {
+  padding: 8px 12px;
+  margin-right: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  background-color: #333;
+  color: #fff;
+}
+
+.player-input input::placeholder {
+  color: #aaa;
+}
+
+.player-input button {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.player-input button:hover {
+  background-color: #45a049;
+}
+
+.players-list {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #333;
+  border-radius: 8px;
+}
+
+.players-list h2 {
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.player-item {
+  padding: 8px;
+  margin: 5px 0;
+  background-color: #444;
+  color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.start-button {
+  padding: 12px 24px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 18px;
+  margin-top: 20px;
+}
+
+.start-button:hover {
+  background-color: #1976D2;
+}
+
+.game-board {
+  margin-top: 30px;
+}
+
+.game-board h2 {
+  color: #fff;
+}
+
+.player-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 .card {
-  padding: 2em;
+  width: 60px;
+  height: 90px;
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #555;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
 }
 
-.read-the-docs {
-  color: #888;
+.card:hover {
+  transform: translateY(-5px);
+  background-color: #444;
+}
+
+.player-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #333;
+  border-radius: 8px;
+}
+
+.player-section h2 {
+  color: #fff;
+  margin-bottom: 15px;
+}
+
+.player-section .current-player {
+  color: #4CAF50;
+}
+
+.card.revealed {
+  background-color: #444;
+  border-color: #666;
+}
+
+.card.selected {
+  border: 2px solid #4CAF50;
+  transform: translateY(-5px);
+}
+
+.guess-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #333;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.guess-dialog h3 {
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+.guess-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.guess-buttons button {
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.guess-buttons button:hover {
+  background-color: #45a049;
+}
+
+.own-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.card-button {
+  padding: 15px;
+  background-color: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.card-button:hover {
+  background-color: #444;
+  transform: translateY(-2px);
+}
+
+.game-logs {
+  width: 300px;
+  height: calc(100vh - 40px);
+  position: sticky;
+  top: 20px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-logs h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.logs-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.log-item {
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+}
+
+.log-item.correct {
+  border-left: 4px solid #4caf50;
+}
+
+.log-item.incorrect {
+  border-left: 4px solid #f44336;
+}
+
+/* スクロールバーのスタイル */
+.logs-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.logs-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
