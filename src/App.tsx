@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import './App.css'
-import { GameState, Player, Card, GameLog } from './types/game'
+import { GameState, Player, Card as CardType, GameLog } from './types/game'
 import { shuffleCards, getDisplayNumber, computerGuess } from './utils/cardUtils'
+import Card from './components/Card'
 
 function App() {
   const [gameState, setGameState] = useState<GameState>({
@@ -16,7 +17,7 @@ function App() {
   const [selectedCard, setSelectedCard] = useState<{playerIndex: number, cardIndex: number} | null>(null);
   const [showSuitDialog, setShowSuitDialog] = useState(false);
   const [showNumberDialog, setShowNumberDialog] = useState(false);
-  const [selectedSuit, setSelectedSuit] = useState<Card['suit'] | null>(null);
+  const [selectedSuit, setSelectedSuit] = useState<CardType['suit'] | null>(null);
   const [showOwnCardSelection, setShowOwnCardSelection] = useState(false);
 
   const getNextPlayerIndex = (currentIndex: number): number => {
@@ -54,7 +55,7 @@ function App() {
     }
   };
 
-  const handleSuitSelect = (suit: Card['suit']) => {
+  const handleSuitSelect = (suit: CardType['suit']) => {
     setSelectedSuit(suit);
     setShowSuitDialog(false);
     setShowNumberDialog(true);
@@ -349,21 +350,16 @@ function App() {
                 </h2>
                 <div className="player-cards">
                   {player.cards.map((card, cardIndex) => (
-                    <div 
-                      key={cardIndex} 
-                      className={`card ${card.isRevealed ? 'revealed' : ''} ${
-                        selectedCard?.playerIndex === playerIndex && 
-                        selectedCard?.cardIndex === cardIndex ? 'selected' : ''
-                      }`}
-                      onClick={() => handleCardSelect(playerIndex, cardIndex)}
-                    >
-                      {playerIndex === 0 ? 
-                        `${card.suit} ${getDisplayNumber(card.number)}${card.isRevealed ? ' ＊' : ''}` : 
-                        card.isRevealed ? 
-                          `${card.suit} ${getDisplayNumber(card.number)} ＊` : 
-                          '?'
+                    <Card
+                      key={cardIndex}
+                      card={card}
+                      isHidden={playerIndex !== 0}
+                      isSelected={
+                        selectedCard?.playerIndex === playerIndex &&
+                        selectedCard?.cardIndex === cardIndex
                       }
-                    </div>
+                      onClick={() => handleCardSelect(playerIndex, cardIndex)}
+                    />
                   ))}
                 </div>
               </div>
@@ -376,7 +372,7 @@ function App() {
                   {['hearts', 'diamonds', 'clubs', 'spades'].map((suit) => (
                     <button
                       key={suit}
-                      onClick={() => handleSuitSelect(suit as Card['suit'])}
+                      onClick={() => handleSuitSelect(suit as CardType['suit'])}
                     >
                       {suit}
                     </button>

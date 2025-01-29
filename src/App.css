@@ -3,16 +3,17 @@
   min-height: 100vh;
   display: flex;
   justify-content: center;
+  background-color: #1e1e1e;
 }
 
 .game-container {
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
   text-align: center;
   display: flex;
-  gap: 20px;
+  gap: 10px;
 }
 
 .game-main {
@@ -21,8 +22,8 @@
 }
 
 h1 {
-  color: #fff;
-  margin-bottom: 30px;
+  color: #ffffff;
+  margin-bottom: 10px;
 }
 
 .setup-container {
@@ -37,15 +38,15 @@ h1 {
 .player-input input {
   padding: 8px 12px;
   margin-right: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
-  background-color: #333;
-  color: #fff;
+  background-color: #ffffff;
+  color: #333;
 }
 
 .player-input input::placeholder {
-  color: #aaa;
+  color: #999;
 }
 
 .player-input button {
@@ -65,22 +66,23 @@ h1 {
 .players-list {
   margin: 20px 0;
   padding: 20px;
-  background-color: #333;
+  background-color: #ffffff;
   border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .players-list h2 {
   margin-bottom: 15px;
-  color: #fff;
+  color: #2c3e50;
 }
 
 .player-item {
   padding: 8px;
   margin: 5px 0;
-  background-color: #444;
-  color: #fff;
+  background-color: #f8f9fa;
+  color: #333;
   border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .start-button {
@@ -99,19 +101,20 @@ h1 {
 }
 
 .game-board {
-  margin-top: 30px;
+  margin-top: 10px;
 }
 
 .game-board h2 {
-  color: #fff;
+  color: #2c3e50;
 }
 
 .player-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 5px;
   justify-content: center;
-  margin-top: 20px;
+  margin-top: 5px;
+  padding: 5px;
 }
 
 .card {
@@ -136,19 +139,21 @@ h1 {
 }
 
 .player-section {
-  margin-bottom: 30px;
-  padding: 20px;
-  background-color: #333;
+  margin-bottom: 8px;
+  padding: 8px;
+  background-color: #2e7d32;
   border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .player-section h2 {
-  color: #fff;
-  margin-bottom: 15px;
+  color: #ffffff;
+  margin-bottom: 5px;
+  font-size: 1.1em;
 }
 
 .player-section .current-player {
-  color: #4CAF50;
+  color: #8bc34a;
 }
 
 .card.revealed {
@@ -166,7 +171,7 @@ h1 {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: #333;
+  background-color: #ffffff;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
@@ -174,7 +179,7 @@ h1 {
 }
 
 .guess-dialog h3 {
-  color: #fff;
+  color: #2c3e50;
   margin-bottom: 20px;
 }
 
@@ -207,9 +212,9 @@ h1 {
 
 .card-button {
   padding: 15px;
-  background-color: #333;
-  color: white;
-  border: 1px solid #555;
+  background-color: #ffffff;
+  color: #333;
+  border: 1px solid #ddd;
   border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
@@ -217,26 +222,27 @@ h1 {
 }
 
 .card-button:hover {
-  background-color: #444;
+  background-color: #f8f9fa;
   transform: translateY(-2px);
 }
 
 .game-logs {
   width: 300px;
-  height: calc(100vh - 40px);
+  height: calc(100vh - 20px);
   position: sticky;
-  top: 20px;
-  background-color: #f5f5f5;
+  top: 10px;
+  background-color: #2d2d2d;
   border-radius: 8px;
-  padding: 20px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .game-logs h3 {
   margin-top: 0;
   margin-bottom: 15px;
-  color: #333;
+  color: #ffffff;
 }
 
 .logs-container {
@@ -249,9 +255,10 @@ h1 {
   padding: 10px;
   margin-bottom: 8px;
   border-radius: 4px;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background-color: #3d3d3d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   font-size: 14px;
+  color: #ffffff;
 }
 
 .log-item.correct {
@@ -268,15 +275,15 @@ h1 {
 }
 
 .logs-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #2d2d2d;
   border-radius: 4px;
 }
 
 .logs-container::-webkit-scrollbar-thumb {
-  background: #888;
+  background: #4d4d4d;
   border-radius: 4px;
 }
 
 .logs-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #5d5d5d;
 }
