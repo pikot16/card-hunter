@@ -27,4 +27,5 @@ export interface GameState {
   gameStatus: 'waiting' | 'playing' | 'finished';
   winner: Player | null;
   logs: GameLog[];
+  eliminationOrder: number[];
 } 

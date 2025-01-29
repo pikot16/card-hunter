@@ -11,7 +11,8 @@ function App() {
     currentPlayerIndex: 0,
     gameStatus: 'waiting',
     winner: null,
-    logs: []
+    logs: [],
+    eliminationOrder: []
   });
 
   const [playerName, setPlayerName] = useState<string>('');
@@ -129,7 +130,8 @@ function App() {
       currentPlayerIndex: 0,
       gameStatus: 'waiting',
       winner: null,
-      logs: []
+      logs: [],
+      eliminationOrder: []
     });
     setPlayerName('');
     setSelectedCard(null);
@@ -164,11 +166,25 @@ function App() {
   // ターン終了時の処理を更新
   const endTurn = (updatedPlayers: Player[]) => {
     const nextIndex = getNextPlayerIndex(gameState.currentPlayerIndex);
-    setGameState(prev => ({
-      ...prev,
-      players: updatedPlayers,
-      currentPlayerIndex: nextIndex
-    }));
+
+    // 現在のプレイヤーが全カード表向きになった場合、脱落順に追加
+    const currentPlayer = updatedPlayers[gameState.currentPlayerIndex];
+    if (currentPlayer.cards.every(card => card.isRevealed) && 
+        !gameState.eliminationOrder.includes(currentPlayer.id)) {
+      setGameState(prev => ({
+        ...prev,
+        players: updatedPlayers,
+        currentPlayerIndex: nextIndex,
+        eliminationOrder: [...prev.eliminationOrder, currentPlayer.id]
+      }));
+    } else {
+      setGameState(prev => ({
+        ...prev,
+        players: updatedPlayers,
+        currentPlayerIndex: nextIndex
+      }));
+    }
+    
     checkGameEnd(updatedPlayers);
   };
 
@@ -213,7 +229,7 @@ function App() {
 
     if (isCorrect) {
       updatedPlayers[selectedCard.playerIndex].cards[selectedCard.cardIndex].isRevealed = true;
-      alert('正解！相手のカードを表にします。');
+      alert('正解！相手のカードを表にします。\n\n(Enter / Space / OK で閉じる)');
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
@@ -221,7 +237,7 @@ function App() {
         logs: updatedLogs
       }));
     } else {
-      alert('不正解... 自分のカードを1枚クリックして表にしてください。');
+      alert('不正解... 自分のカードを1枚クリックして表にしてください。\n\n(Enter / Space / OK で閉じる)');
       if (currentPlayer.isComputer) {
         // コンピュータの処理は変更なし
         const unrevealedCards = currentPlayer.cards
@@ -306,7 +322,8 @@ function App() {
       currentPlayerIndex: 0,
       gameStatus: 'playing',
       winner: null,
-      logs: []
+      logs: [],
+      eliminationOrder: []
     });
   };
 
@@ -445,6 +462,25 @@ function App() {
       checkGameEnd(computerAction.updatedPlayers);
     };
 
+    // キーボードイベントのハンドラーを追加
+    useEffect(() => {
+      const handleKeyPress = (e: KeyboardEvent) => {
+        // スペースキー、エンターキー、右矢印キーで次へ進む
+        if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') {
+          e.preventDefault();  // デフォルトの動作を防ぐ
+          handleContinue();
+        }
+      };
+
+      // イベントリスナーを追加
+      window.addEventListener('keydown', handleKeyPress);
+
+      // クリーンアップ関数
+      return () => {
+        window.removeEventListener('keydown', handleKeyPress);
+      };
+    }, [computerAction]);  // computerActionが変更されたときにリスナーを更新
+
     return (
       <Draggable handle=".dialog-header">
         <div className="guess-dialog computer-action-dialog">
@@ -467,7 +503,7 @@ function App() {
             className="action-continue-button"
             onClick={handleContinue}
           >
-            次へ進む
+            次へ進む (Space / Enter / →)
           </button>
         </div>
       </Draggable>
@@ -491,12 +527,36 @@ function App() {
     };
   };
 
+  // プレイヤーの順位を計算する関数を更新
+  const calculatePlayerRanks = () => {
+    const ranks = new Map();
+    
+    // 勝者（最後まで残ったプレイヤー）は1位
+    ranks.set(gameState.winner?.id, 1);
+    
+    // 脱落順に基づいて順位を設定（最後に脱落 = 2位、最初に脱落 = 4位）
+    gameState.eliminationOrder.forEach((playerId, index) => {
+      ranks.set(playerId, gameState.eliminationOrder.length - index + 1);
+    });
+
+    return ranks;
+  };
+
   // 統計情報を表示するコンポーネント
   const PlayerStats = ({ player }: { player: Player }) => {
     const stats = calculatePlayerStats(player.name);
+    const ranks = calculatePlayerRanks();
+    const rank = ranks.get(player.id);
+    
     return (
       <div className="player-stats">
-        <h3>{player.name} {player.id === gameState.winner?.id && '👑'}</h3>
+        <h3>
+          {player.name}
+          <span className="player-rank">
+            {rank}位
+            {rank === 1 && ' 👑'}
+          </span>
+        </h3>
         <div className="stats-item">
           <span className="stats-label">予想回数:</span>
           <span className="stats-value">{stats.total}</span>
@@ -579,7 +639,7 @@ function App() {
           <div>
             <div className="winner-message">
               <h2>🎉 ゲーム終了 🎉</h2>
-              <h3>{gameState.winner?.name}の勝利！</h3>
+              <h3>{gameState.winner?.name}の勝利！ (1位 👑)</h3>
               <button className="restart-button" onClick={resetGame}>
                 もう一度遊ぶ
               </button>

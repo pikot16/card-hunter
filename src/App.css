@@ -176,36 +176,64 @@ h1 {
 .playing-card {
   width: 60px;
   height: 90px;
-  background-color: #333;
-  border: 1px solid #555;
+  background-color: #2e7d32;  /* 裏面は深い緑色 */
+  border: 4px solid #4CAF50;  /* 4pxに変更 */
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s;
+  transition: all 0.2s;
   overflow: hidden;
+  position: relative;
 }
 
 .playing-card:hover {
   transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.playing-card.revealed {
+  background-color: #424242;  /* 表面は暗いグレー */
+  border: 4px solid #f44336;  /* 赤色のボーダーを4pxに */
+  opacity: 0.9;  /* やや透明に */
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);  /* 内側にシャドウ */
+}
+
+.playing-card.revealed:hover {
+  transform: none;  /* 表になったカードはホバー効果なし */
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.playing-card.revealed::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.1),
+    rgba(0, 0, 0, 0.1) 10px,
+    rgba(0, 0, 0, 0.2) 10px,
+    rgba(0, 0, 0, 0.2) 20px
+  );  /* 斜めストライプパターン */
+}
+
+.playing-card.selected {
+  border: 4px solid #8bc34a;  /* 選択時のボーダーも4pxに */
+  transform: translateY(-5px);
+  box-shadow: 0 0 15px rgba(139, 195, 74, 0.5);
 }
 
 .card-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.playing-card.revealed {
-  background-color: #444;
-  border-color: #666;
-}
-
-.playing-card.selected {
-  border: 2px solid #4CAF50;
-  transform: translateY(-5px);
+  position: relative;
+  z-index: 1;
 }
 
 .player-section {
@@ -693,4 +721,19 @@ h1 {
   padding: 15px;
   max-height: calc(100vh - 200px);
   overflow-y: auto;
+}
+
+.player-rank {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 8px;
+  background-color: #4a4a4a;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: #ffffff;
+}
+
+.player-rank.first {
+  background-color: rgba(139, 195, 74, 0.3);
+  color: #8bc34a;
 }
