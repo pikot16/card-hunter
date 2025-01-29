@@ -1,4 +1,4 @@
-# カードミステリー 技術仕様書
+# カードミステリー 仕様書
 
 ## 1. システム要件
 - 開発環境: TypeScript + React + Vite
@@ -21,8 +21,8 @@ interface Card {
 interface Player {
   id: number;
   name: string;
-  cards: Card[];
   isComputer: boolean;
+  cards: Card[];
 }
 ```
 
@@ -34,6 +34,19 @@ interface GameState {
   gameStatus: 'waiting' | 'playing' | 'finished';
   winner: Player | null;
   logs: GameLog[];
+}
+```
+
+### 2.4 ゲームログ
+```typescript
+interface GameLog {
+  guessingPlayer: string;
+  targetPlayer: string;
+  cardIndex: number;
+  guessedSuit: string;
+  guessedNumber: number;
+  isCorrect: boolean;
+  timestamp: number;
 }
 ```
 
@@ -56,7 +69,11 @@ interface GameState {
 
 #### AI
 - [x] コンピュータープレイヤーの基本ロジック
-- [x] ランダム予想アルゴリズム
+- [x] 戦略的予想アルゴリズム
+  - [x] カードの位置による制約の考慮
+  - [x] 前後のカードの数字を考慮した予想
+  - [x] 確率ベースの予測システム
+  - [x] 既存の公開カード情報の活用
 - [x] カード公開ロジック
 
 ### 3.2 実装予定の機能
@@ -74,7 +91,7 @@ interface GameState {
 #### AI
 - [ ] 難易度設定
 - [ ] 学習型AI（オプション）
-- [ ] 戦略的な予想アルゴリズム
+- [ ] プレイヤーの行動パターン分析
 
 ## 4. コンポーネント構成
 
@@ -123,4 +140,54 @@ npm install react react-dom typescript vite @types/react @types/react-dom
 npm run dev    # 開発サーバー起動
 npm run build  # プロダクションビルド
 npm run test   # テスト実行
-``` 
+```
+
+## UI コンポーネント
+
+### ゲームボード
+- プレイヤーセクションの表示
+  - プレイヤー名
+  - 現在のプレイヤーの表示
+  - カードの表示（13枚）
+  - 予想対象プレイヤーの表示
+
+### カード選択ダイアログ
+- ドラッグ可能なヘッダー付きダイアログ
+- スート選択
+  - ♥, ♦, ♣, ♠ の記号表示
+  - 赤/黒の色分け
+- 数字選択（A-K）
+- キャンセル・戻るボタン
+
+### ゲーム履歴
+- 連番付きエントリー
+- プレイヤー名の強調表示
+- カードシンボルの視覚的表示
+- 2行レイアウト
+  - 1行目: プレイヤー情報
+  - 2行目: カード予想と結果
+- 結果表示（○/×）
+
+## ゲームロジック
+
+### ゲーム開始
+1. プレイヤー名の入力
+2. 4人のプレイヤー設定（1人のユーザーと3人のコンピュータ）
+3. カードの配布（各プレイヤーに13枚）
+
+### ターンの進行
+1. プレイヤーの選択
+   - 人間プレイヤー: 任意のカードを選択
+   - コンピュータ: ランダムに選択
+
+2. カード予想
+   - 人間プレイヤー: ダイアログで選択
+   - コンピュータ: ランダムに予想
+
+3. 結果判定
+   - 正解: 相手のカードを表向きに
+   - 不正解: 自分のカードを表向きに
+
+### 勝利条件
+- 最後まで裏向きのカードを持っているプレイヤーが勝利
+- 全プレイヤーのカードが表向きになった場合は引き分け 
