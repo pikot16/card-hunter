@@ -176,17 +176,37 @@ h1 {
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   z-index: 1000;
+  cursor: default;
 }
 
-.guess-dialog h3 {
-  color: #2c3e50;
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  cursor: move;
+  user-select: none;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.drag-handle {
+  color: #666;
+  font-size: 20px;
+  padding: 0 10px;
+  cursor: move;
+  user-select: none;
 }
 
 .guess-buttons {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 10px;
+  margin-bottom: 15px;
 }
 
 .guess-buttons button {
@@ -201,6 +221,42 @@ h1 {
 
 .guess-buttons button:hover {
   background-color: #45a049;
+}
+
+.dialog-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.back-button {
+  padding: 10px 20px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  flex: 1;
+}
+
+.back-button:hover {
+  background-color: #1976D2;
+}
+
+.cancel-button {
+  padding: 10px 20px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  flex: 1;
+}
+
+.cancel-button:hover {
+  background-color: #d32f2f;
 }
 
 .own-cards {
@@ -237,6 +293,7 @@ h1 {
   display: flex;
   flex-direction: column;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  text-align: left;
 }
 
 .game-logs h3 {
@@ -259,6 +316,7 @@ h1 {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   font-size: 14px;
   color: #ffffff;
+  line-height: 1.4;
 }
 
 .log-item.correct {
@@ -286,4 +344,124 @@ h1 {
 
 .logs-container::-webkit-scrollbar-thumb:hover {
   background: #5d5d5d;
+}
+
+.suit-button {
+  font-size: 24px !important;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white !important;
+  border: 2px solid #ccc !important;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.suit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.suit-button.hearts,
+.suit-button.diamonds {
+  color: #e31b23 !important;
+}
+
+.suit-button.clubs,
+.suit-button.spades {
+  color: #000000 !important;
+}
+
+.selected-suit {
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #2c3e50;
+}
+
+.selected-suit span {
+  font-size: 24px;
+  margin-left: 8px;
+}
+
+.selected-suit span.hearts,
+.selected-suit span.diamonds {
+  color: #e31b23;
+}
+
+.selected-suit span.clubs,
+.selected-suit span.spades {
+  color: #000000;
+}
+
+.log-header {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.log-number {
+  display: inline-block;
+  min-width: 24px;
+  margin-right: 8px;
+  font-weight: bold;
+  color: #8bc34a;
+  flex-shrink: 0;
+}
+
+.log-content {
+  padding-left: 32px;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
+.result-symbol {
+  display: inline-block;
+  font-size: 20px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.correct .result-symbol {
+  color: #4caf50;
+}
+
+.incorrect .result-symbol {
+  color: #f44336;
+}
+
+.player-name {
+  display: inline-block;
+  background-color: #4a4a4a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin: 0 4px;
+  font-weight: bold;
+  color: #8bc34a;
+}
+
+.card-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin: 0 4px;
+  font-weight: bold;
+  font-size: 14px;
+  min-width: 35px;
+}
+
+.card-symbol.hearts,
+.card-symbol.diamonds {
+  color: #e31b23;
+}
+
+.card-symbol.clubs,
+.card-symbol.spades {
+  color: #000000;
 }

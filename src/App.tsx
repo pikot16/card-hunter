@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import Draggable, { DraggableCore } from 'react-draggable'
 import './App.css'
 import { GameState, Player, Card as CardType, GameLog } from './types/game'
 import { shuffleCards, getDisplayNumber, computerGuess } from './utils/cardUtils'
@@ -18,7 +19,26 @@ function App() {
   const [showSuitDialog, setShowSuitDialog] = useState(false);
   const [showNumberDialog, setShowNumberDialog] = useState(false);
   const [selectedSuit, setSelectedSuit] = useState<CardType['suit'] | null>(null);
-  const [showOwnCardSelection, setShowOwnCardSelection] = useState(false);
+  const [isSelectingOwnCard, setIsSelectingOwnCard] = useState(false);
+  const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 });
+
+  // スートの表示用マッピングを追加
+  const suitSymbols: { [key: string]: string } = {
+    'hearts': '♥',
+    'diamonds': '♦',
+    'clubs': '♣',
+    'spades': '♠'
+  };
+
+  // カードの表示用関数を追加
+  const getDisplayCard = (suit: string, number: number) => {
+    const displayNum = getDisplayNumber(number);
+    return (
+      <span className={`card-symbol ${suit}`}>
+        {suitSymbols[suit]}{displayNum}
+      </span>
+    );
+  };
 
   const getNextPlayerIndex = (currentIndex: number): number => {
     let nextIndex = (currentIndex + 1) % gameState.players.length;
@@ -47,6 +67,22 @@ function App() {
   };
 
   const handleCardSelect = (playerIndex: number, cardIndex: number) => {
+    // ダイアログ表示中は新しいカードの選択を無効化
+    if (showSuitDialog || showNumberDialog) {
+      return;
+    }
+
+    // 自分のカードを選択するモード中の場合
+    if (isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex) {
+      const card = gameState.players[playerIndex].cards[cardIndex];
+      if (!card.isRevealed) {
+        handleOwnCardSelect(cardIndex);
+        setIsSelectingOwnCard(false);
+      }
+      return;
+    }
+
+    // 通常の予想モード
     if (gameState.currentPlayerIndex === 0 && 
         playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) &&
         !gameState.players[playerIndex].cards[cardIndex].isRevealed) {
@@ -59,6 +95,21 @@ function App() {
     setSelectedSuit(suit);
     setShowSuitDialog(false);
     setShowNumberDialog(true);
+    // 位置は維持したままにする
+  };
+
+  const handleCancelSelection = () => {
+    setSelectedCard(null);
+    setShowSuitDialog(false);
+    setShowNumberDialog(false);
+    setSelectedSuit(null);
+    setDialogPosition({ x: 0, y: 0 });  // 位置をリセット
+  };
+
+  const handleBackToSuit = () => {
+    setShowNumberDialog(false);
+    setShowSuitDialog(true);
+    // 位置は維持したままにする
   };
 
   // ゲーム終了の判定
@@ -141,9 +192,9 @@ function App() {
         logs: updatedLogs
       }));
     } else {
-      alert('不正解... 自分のカードを1枚選んで表にしてください。');
+      alert('不正解... 自分のカードを1枚クリックして表にしてください。');
       if (currentPlayer.isComputer) {
-        // 表になっていないカードの中からランダムに1枚選ぶ
+        // コンピュータの処理は変更なし
         const unrevealedCards = currentPlayer.cards
           .map((card, index) => ({ card, index }))
           .filter(item => !item.card.isRevealed);
@@ -159,7 +210,7 @@ function App() {
           }));
         }
       } else {
-        setShowOwnCardSelection(true);
+        setIsSelectingOwnCard(true);
         setGameState(prev => ({
           ...prev,
           logs: updatedLogs
@@ -177,7 +228,6 @@ function App() {
     updatedPlayers[gameState.currentPlayerIndex].cards[cardIndex].isRevealed = true;
     
     endTurn(updatedPlayers);
-    setShowOwnCardSelection(false);
   };
 
   const startGame = () => {
@@ -294,17 +344,26 @@ function App() {
     return () => clearTimeout(timeoutId);
   }, [gameState]);
 
-  // ゲームログを表示するコンポーネント
+  const handleDragStop = (e: any, data: { x: number; y: number }) => {
+    setDialogPosition({ x: data.x, y: data.y });
+  };
+
+  // ゲームログを表示するコンポーネントを更新
   const GameLogs = () => (
     <div className="game-logs">
       <h3>ゲーム履歴</h3>
       <div className="logs-container">
         {gameState.logs.slice().reverse().map((log, index) => (
           <div key={log.timestamp} className={`log-item ${log.isCorrect ? 'correct' : 'incorrect'}`}>
-            {log.guessingPlayer}が{log.targetPlayer}の
-            {log.cardIndex + 1}枚目のカードを
-            {log.guessedSuit} {getDisplayNumber(log.guessedNumber)}と予想
-            → {log.isCorrect ? '正解！' : '不正解'}
+            <div className="log-header">
+              <span className="log-number">{gameState.logs.length - index}.</span>
+              <span className="player-name">{log.guessingPlayer}</span>が
+              <span className="player-name">{log.targetPlayer}</span>の
+            </div>
+            <div className="log-content">
+              {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
+              <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -347,6 +406,8 @@ function App() {
                   {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー)' : ''}
                   {playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
                     gameState.currentPlayerIndex === 0 && ' (予想対象)'}
+                  {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
+                    ' - 表にするカードを選んでください'}
                 </h2>
                 <div className="player-cards">
                   {player.cards.map((card, cardIndex) => (
@@ -366,59 +427,74 @@ function App() {
             ))}
 
             {showSuitDialog && (
-              <div className="guess-dialog">
-                <h3>カードのスートを予想してください</h3>
-                <div className="guess-buttons">
-                  {['hearts', 'diamonds', 'clubs', 'spades'].map((suit) => (
-                    <button
-                      key={suit}
-                      onClick={() => handleSuitSelect(suit as CardType['suit'])}
-                    >
-                      {suit}
-                    </button>
-                  ))}
+              <Draggable 
+                handle=".dialog-header" 
+                position={dialogPosition}
+                onStop={handleDragStop}
+              >
+                <div className="guess-dialog">
+                  <div className="dialog-header">
+                    <h3>カードのスートを予想してください</h3>
+                    <div className="drag-handle">⋮⋮</div>
+                  </div>
+                  <div className="guess-buttons">
+                    {['hearts', 'diamonds', 'clubs', 'spades'].map((suit) => (
+                      <button
+                        key={suit}
+                        onClick={() => handleSuitSelect(suit as CardType['suit'])}
+                        className={`suit-button ${suit}`}
+                      >
+                        {suitSymbols[suit]}
+                      </button>
+                    ))}
+                  </div>
+                  <button className="cancel-button" onClick={handleCancelSelection}>
+                    キャンセル
+                  </button>
                 </div>
-              </div>
+              </Draggable>
             )}
 
             {showNumberDialog && (
-              <div className="guess-dialog">
-                <h3>カードの数字を予想してください</h3>
-                <div className="guess-buttons">
-                  {['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'].map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => {
-                        const numberMap: { [key: string]: number } = {
-                          'A': 1, 'J': 11, 'Q': 12, 'K': 13
-                        };
-                        const guessedNumber = numberMap[num] || parseInt(num);
-                        handleGuess(guessedNumber);
-                      }}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {showOwnCardSelection && (
-              <div className="guess-dialog">
-                <h3>表にするカードを選んでください</h3>
-                <div className="own-cards">
-                  {gameState.players[gameState.currentPlayerIndex].cards
-                    .map((card, index) => !card.isRevealed && (
+              <Draggable 
+                handle=".dialog-header" 
+                position={dialogPosition}
+                onStop={handleDragStop}
+              >
+                <div className="guess-dialog">
+                  <div className="dialog-header">
+                    <h3>カードの数字を予想してください</h3>
+                    <div className="drag-handle">⋮⋮</div>
+                  </div>
+                  <div className="selected-suit">
+                    選択したスート: <span className={selectedSuit || ''}>{selectedSuit ? suitSymbols[selectedSuit] : ''}</span>
+                  </div>
+                  <div className="guess-buttons">
+                    {['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'].map((num) => (
                       <button
-                        key={index}
-                        className="card-button"
-                        onClick={() => handleOwnCardSelect(index)}
+                        key={num}
+                        onClick={() => {
+                          const numberMap: { [key: string]: number } = {
+                            'A': 1, 'J': 11, 'Q': 12, 'K': 13
+                          };
+                          const guessedNumber = numberMap[num] || parseInt(num);
+                          handleGuess(guessedNumber);
+                        }}
                       >
-                        {`${card.suit} ${getDisplayNumber(card.number)}`}
+                        {num}
                       </button>
                     ))}
+                  </div>
+                  <div className="dialog-buttons">
+                    <button className="back-button" onClick={handleBackToSuit}>
+                      戻る
+                    </button>
+                    <button className="cancel-button" onClick={handleCancelSelection}>
+                      キャンセル
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </Draggable>
             )}
           </div>
         )}

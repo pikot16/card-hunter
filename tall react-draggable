@@ -1,0 +1,35 @@
+[33mcommit 8ec0d32d714bd8cd7e53d63cce2a0a039fc84e37[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: Yuhei Abe <amtsh6@gmail.com>
+Date:   Wed Jan 29 18:40:41 2025 +0900
+
+    feat: improve UI/UX - Optimize card size, adjust spacing, implement dark theme, enhance revealed card visibility
+
+[33mcommit 067e6ff8cb5745a15fdb0f6aa610c2d54665eb5d[m
+Author: Yuhei Abe <amtsh6@gmail.com>
+Date:   Wed Jan 29 17:23:30 2025 +0900
+
+    docs: reorganize documentation structure to separate user and developer information
+
+[33mcommit 6b3aa826acc65769302c1b74f6a48a4634e7b1a0[m
+Author: Yuhei Abe <amtsh6@gmail.com>
+Date:   Wed Jan 29 17:20:06 2025 +0900
+
+    docs: update README with current implementation status and future plans
+
+[33mcommit 37b4ce80e819bd6268bf8b4038f4296e51944749[m
+Author: Yuhei Abe <amtsh6@gmail.com>
+Date:   Wed Jan 29 17:17:33 2025 +0900
+
+    feat: implement card game features
+
+[33mcommit 5a8e8bfed3bcd74dd5f2fdae143aff61c286dc17[m
+Author: Yuhei Abe <amtsh6@gmail.com>
+Date:   Wed Jan 29 17:17:22 2025 +0900
+
+    chore: add .gitignore file
+
+[33mcommit 78575a535df4e390bbb2192e133744d289fd4735[m
+Author: Yuhei Abe <amtsh6@gmail.com>
+Date:   Sat Jan 11 18:08:09 2025 +0900
+
+    Initial commit: Setup basic card game structure
