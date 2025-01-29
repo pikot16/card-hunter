@@ -4,12 +4,13 @@ import '../styles/Card.css';
 
 interface CardProps {
   card: CardType;
+  isHidden: boolean;
   isSelected?: boolean;
-  isHidden?: boolean;
-  onClick?: () => void;
+  onClick: () => void;
+  index?: number;
 }
 
-const Card: React.FC<CardProps> = ({ card, isSelected, isHidden, onClick }) => {
+const Card: React.FC<CardProps> = ({ card, isHidden, isSelected = false, onClick, index }) => {
   const getCardImage = () => {
     if (isHidden && !card.isRevealed) {
       return '/images/cards/back.png';
@@ -35,16 +36,29 @@ const Card: React.FC<CardProps> = ({ card, isSelected, isHidden, onClick }) => {
     return `/images/cards/${numberStr}_of_${suitStr}.png`;
   };
 
+  const getDisplayNumber = (num: number) => {
+    switch (num) {
+      case 1: return 'A';
+      case 11: return 'J';
+      case 12: return 'Q';
+      case 13: return 'K';
+      default: return num.toString();
+    }
+  };
+
   return (
-    <div 
-      className={`playing-card ${isSelected ? 'selected' : ''} ${card.isRevealed ? 'revealed' : ''}`}
-      onClick={onClick}
-    >
-      <img 
-        src={getCardImage()} 
-        alt={`${card.suit} ${card.number}`}
-        className="card-image"
-      />
+    <div className="card-container">
+      <div
+        className={`playing-card ${card.isRevealed ? 'revealed' : ''} ${isSelected ? 'selected' : ''}`}
+        onClick={onClick}
+      >
+        <img 
+          src={getCardImage()} 
+          alt={`${card.suit} ${card.number}`}
+          className="card-image"
+        />
+      </div>
+      <div className="card-index">{(index !== undefined) ? index + 1 : ''}</div>
     </div>
   );
 };

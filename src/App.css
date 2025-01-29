@@ -27,8 +27,64 @@ h1 {
 }
 
 .setup-container {
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
+  padding: 20px;
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.game-rules {
+  margin-bottom: 30px;
+  color: #ffffff;
+  text-align: left;
+}
+
+.game-rules h2 {
+  color: #8bc34a;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 1.8em;
+}
+
+.game-rules h3 {
+  color: #4CAF50;
+  margin: 20px 0 10px;
+  font-size: 1.4em;
+}
+
+.rules-content {
+  background-color: #3d3d3d;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.rules-content p {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.rules-content ol {
+  margin: 15px 0;
+  padding-left: 25px;
+}
+
+.rules-content ul {
+  margin: 5px 0;
+  padding-left: 25px;
+  list-style-type: disc;
+}
+
+.rules-content li {
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.rules-content ul li {
+  margin: 5px 0;
+  color: #bbb;
 }
 
 .player-input {
@@ -117,25 +173,39 @@ h1 {
   padding: 5px;
 }
 
-.card {
+.playing-card {
   width: 60px;
   height: 90px;
   background-color: #333;
-  color: #fff;
   border: 1px solid #555;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: transform 0.2s;
+  overflow: hidden;
 }
 
-.card:hover {
+.playing-card:hover {
   transform: translateY(-5px);
+}
+
+.card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.playing-card.revealed {
   background-color: #444;
+  border-color: #666;
+}
+
+.playing-card.selected {
+  border: 2px solid #4CAF50;
+  transform: translateY(-5px);
 }
 
 .player-section {
@@ -150,20 +220,34 @@ h1 {
   color: #ffffff;
   margin-bottom: 5px;
   font-size: 1.1em;
+  opacity: 0.7;
+  transition: all 0.3s ease;
 }
 
 .player-section .current-player {
-  color: #8bc34a;
+  color: #ffffff;
+  opacity: 1;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(139, 195, 74, 0.5);
+  background-color: rgba(139, 195, 74, 0.2);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 4px solid #8bc34a;
 }
 
-.card.revealed {
-  background-color: #444;
-  border-color: #666;
+.card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
-.card.selected {
-  border: 2px solid #4CAF50;
-  transform: translateY(-5px);
+.card-index {
+  font-size: 12px;
+  color: #ffffff;
+  opacity: 0.8;
+  user-select: none;
 }
 
 .guess-dialog {
@@ -464,4 +548,48 @@ h1 {
 .card-symbol.clubs,
 .card-symbol.spades {
   color: #000000;
+}
+
+.computer-action-dialog {
+  min-width: 400px;
+  background-color: #2d2d2d;
+  color: #ffffff;
+}
+
+.computer-action-dialog .dialog-header h3 {
+  color: #ffffff;
+}
+
+.computer-action-content {
+  text-align: left;
+  margin: 20px 0;
+}
+
+.action-description {
+  margin-bottom: 15px;
+  font-size: 16px;
+}
+
+.action-guess {
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-continue-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 20px;
+  transition: background-color 0.2s;
+}
+
+.action-continue-button:hover {
+  background-color: #45a049;
 }

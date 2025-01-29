@@ -306,6 +306,13 @@ function App() {
     const timeoutId = setTimeout(() => {
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       const nextTargetIndex = getNextTargetPlayerIndex(gameState.currentPlayerIndex);
+      
+      // 次のターゲットが見つからない場合（ゲーム終了）
+      if (nextTargetIndex === -1) {
+        checkGameEnd(gameState.players);
+        return;
+      }
+
       const nextPlayer = gameState.players[nextTargetIndex];
       
       // 表になっていないカードのインデックスを取得
@@ -316,49 +323,61 @@ function App() {
       if (unrevealedCards.length > 0) {
         const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
         const guess = computerGuess(gameState, nextPlayer, randomCard.index);
-        if (!guess) return;
+        
+        // guessがnullの場合は、ランダムな予想を行う
+        const fallbackGuess = {
+          suit: ['hearts', 'diamonds', 'clubs', 'spades'][Math.floor(Math.random() * 4)],
+          number: Math.floor(Math.random() * 13) + 1
+        };
+        const finalGuess = guess || fallbackGuess;
 
         const targetCard = nextPlayer.cards[randomCard.index];
-        const isCorrect = targetCard.number === guess.number && targetCard.suit === guess.suit;
-
-        // コンピュータの行動を記録
-        setComputerAction({
-          player: currentPlayer.name,
-          targetPlayer: nextPlayer.name,
-          cardIndex: randomCard.index,
-          guessedCard: { suit: guess.suit, number: guess.number },
-          isCorrect: isCorrect,
-          updatedPlayers: [...gameState.players].map(player => ({...player})),  // ディープコピー
-          nextPlayerIndex: getNextPlayerIndex(gameState.currentPlayerIndex)
-        });
-        setShowComputerActionDialog(true);
+        const isCorrect = targetCard.number === finalGuess.number && targetCard.suit === finalGuess.suit;
 
         const updatedPlayers = [...gameState.players];
         const updatedLogs = addLog(
           updatedPlayers,
           randomCard.index,
-          guess.suit,
-          guess.number,
+          finalGuess.suit,
+          finalGuess.number,
           isCorrect
         );
 
         if (isCorrect) {
           updatedPlayers[nextTargetIndex].cards[randomCard.index].isRevealed = true;
         } else {
-          const unrevealedCards = currentPlayer.cards
+          const unrevealedOwnCards = currentPlayer.cards
             .map((card, index) => ({ card, index }))
             .filter(item => !item.card.isRevealed);
 
-          if (unrevealedCards.length > 0) {
-            const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
-            updatedPlayers[gameState.currentPlayerIndex].cards[randomCard.index].isRevealed = true;
+          if (unrevealedOwnCards.length > 0) {
+            const randomOwnCard = unrevealedOwnCards[Math.floor(Math.random() * unrevealedOwnCards.length)];
+            updatedPlayers[gameState.currentPlayerIndex].cards[randomOwnCard.index].isRevealed = true;
           }
         }
 
-        // ゲーム状態の更新を次へ進むボタンのクリック時に行うため、ここでは更新しない
+        // コンピュータの行動を記録
+        setComputerAction({
+          player: currentPlayer.name,
+          targetPlayer: nextPlayer.name,
+          cardIndex: randomCard.index,
+          guessedCard: finalGuess,
+          isCorrect: isCorrect,
+          updatedPlayers: updatedPlayers,
+          nextPlayerIndex: getNextPlayerIndex(gameState.currentPlayerIndex)
+        });
+        setShowComputerActionDialog(true);
+
+        // ゲーム状態の更新
         setGameState(prev => ({
           ...prev,
           logs: updatedLogs
+        }));
+      } else {
+        // 予想できるカードがない場合は次のプレイヤーへ
+        setGameState(prev => ({
+          ...prev,
+          currentPlayerIndex: getNextPlayerIndex(prev.currentPlayerIndex)
         }));
       }
     }, 1000);
@@ -443,6 +462,35 @@ function App() {
         
         {gameState.gameStatus === 'waiting' ? (
           <div className="setup-container">
+            <div className="game-rules">
+              <h2>ゲームのルール</h2>
+              <div className="rules-content">
+                <h3>ゲームの目的</h3>
+                <p>最後まで自分のカードを守り抜いた人が勝者となります！</p>
+                
+                <h3>基本ルール</h3>
+                <ol>
+                  <li>各プレイヤーは13枚のカードを持ちます（数字順に並びます）</li>
+                  <li>順番に他のプレイヤーのカードを予想していきます</li>
+                  <li>予想が当たった場合：
+                    <ul>
+                      <li>相手のカードが表向きになります</li>
+                      <li>続けて次の予想ができます</li>
+                    </ul>
+                  </li>
+                  <li>予想が外れた場合：
+                    <ul>
+                      <li>自分のカードを1枚表向きにしなければなりません</li>
+                      <li>次のプレイヤーの番になります</li>
+                    </ul>
+                  </li>
+                </ol>
+
+                <h3>ゲーム終了</h3>
+                <p>最後まで裏向きのカードを持っているプレイヤーが勝利します！</p>
+              </div>
+            </div>
+
             <div className="player-input">
               <input
                 type="text"
