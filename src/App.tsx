@@ -511,7 +511,7 @@ function App() {
         </div>
         <div className="stats-item">
           <span className="stats-label">正答率:</span>
-          <span className={`stats-value ${stats.accuracy >= 50 ? 'good' : 'bad'}`}>
+          <span className="stats-value">
             {stats.accuracy}%
           </span>
         </div>
