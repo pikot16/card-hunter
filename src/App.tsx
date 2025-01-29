@@ -439,7 +439,7 @@ function App() {
   return (
     <div className="game-container">
       <div className="game-main">
-        <h1>カードミステリー</h1>
+        <h1>カードハンター</h1>
         
         {gameState.gameStatus === 'waiting' ? (
           <div className="setup-container">
