@@ -474,6 +474,51 @@ function App() {
     );
   };
 
+  // プレイヤーの統計情報を計算する関数を追加
+  const calculatePlayerStats = (playerName: string) => {
+    const playerGuesses = gameState.logs.filter(log => log.guessingPlayer === playerName);
+    const correctGuesses = playerGuesses.filter(log => log.isCorrect);
+    const incorrectGuesses = playerGuesses.filter(log => !log.isCorrect);
+    const accuracy = playerGuesses.length > 0 
+      ? Math.round((correctGuesses.length / playerGuesses.length) * 100) 
+      : 0;
+
+    return {
+      total: playerGuesses.length,
+      correct: correctGuesses.length,
+      incorrect: incorrectGuesses.length,
+      accuracy
+    };
+  };
+
+  // 統計情報を表示するコンポーネント
+  const PlayerStats = ({ player }: { player: Player }) => {
+    const stats = calculatePlayerStats(player.name);
+    return (
+      <div className="player-stats">
+        <h3>{player.name} {player.id === gameState.winner?.id && '👑'}</h3>
+        <div className="stats-item">
+          <span className="stats-label">予想回数:</span>
+          <span className="stats-value">{stats.total}</span>
+        </div>
+        <div className="stats-item">
+          <span className="stats-label">正解:</span>
+          <span className="stats-value good">{stats.correct}</span>
+        </div>
+        <div className="stats-item">
+          <span className="stats-label">不正解:</span>
+          <span className="stats-value bad">{stats.incorrect}</span>
+        </div>
+        <div className="stats-item">
+          <span className="stats-label">正答率:</span>
+          <span className={`stats-value ${stats.accuracy >= 50 ? 'good' : 'bad'}`}>
+            {stats.accuracy}%
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="game-container">
       <div className="game-main">
@@ -539,27 +584,57 @@ function App() {
                 もう一度遊ぶ
               </button>
             </div>
-            <div className="game-board">
-              {gameState.players.map((player, playerIndex) => (
-                <div key={player.id} className="player-section">
-                  <h2>
-                    {player.name}
-                    {player.id === gameState.winner?.id && ' 👑'}
-                  </h2>
-                  <div className="player-cards">
-                    {player.cards.map((card, cardIndex) => (
-                      <Card
-                        key={cardIndex}
-                        card={card}
-                        isHidden={false}
-                        isSelected={false}
-                        onClick={() => {}}
-                        index={cardIndex}
-                      />
-                    ))}
-                  </div>
-                </div>
+
+            <div className="game-stats">
+              {gameState.players.map((player) => (
+                <PlayerStats key={player.id} player={player} />
               ))}
+            </div>
+
+            <div className="game-end-container">
+              <div className="game-end-main">
+                <div className="game-board">
+                  {gameState.players.map((player, playerIndex) => (
+                    <div key={player.id} className="player-section">
+                      <h2>
+                        {player.name}
+                        {player.id === gameState.winner?.id && ' 👑'}
+                      </h2>
+                      <div className="player-cards">
+                        {player.cards.map((card, cardIndex) => (
+                          <Card
+                            key={cardIndex}
+                            card={card}
+                            isHidden={false}
+                            isSelected={false}
+                            onClick={() => {}}
+                            index={cardIndex}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="game-end-logs">
+                <h3>ゲーム履歴</h3>
+                <div className="logs-container">
+                  {gameState.logs.slice().reverse().map((log, index) => (
+                    <div key={log.timestamp} className={`log-item ${log.isCorrect ? 'correct' : 'incorrect'}`}>
+                      <div className="log-header">
+                        <span className="log-number">{gameState.logs.length - index}.</span>
+                        <span className="player-name">{log.guessingPlayer}</span>が
+                        <span className="player-name">{log.targetPlayer}</span>の
+                      </div>
+                      <div className="log-content">
+                        {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
+                        <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         ) : (
