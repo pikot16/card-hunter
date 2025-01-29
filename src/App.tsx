@@ -122,7 +122,27 @@ function App() {
     // 位置は維持したままにする
   };
 
-  // ゲーム終了の判定
+  // ゲームをリセットする関数を追加
+  const resetGame = () => {
+    setGameState({
+      players: [],
+      currentPlayerIndex: 0,
+      gameStatus: 'waiting',
+      winner: null,
+      logs: []
+    });
+    setPlayerName('');
+    setSelectedCard(null);
+    setShowSuitDialog(false);
+    setShowNumberDialog(false);
+    setSelectedSuit(null);
+    setIsSelectingOwnCard(false);
+    setDialogPosition({ x: 0, y: 0 });
+    setShowComputerActionDialog(false);
+    setComputerAction(null);
+  };
+
+  // ゲーム終了の判定を更新
   const checkGameEnd = (players: Player[]) => {
     const playersWithUnrevealedCards = players.filter(player =>
       player.cards.some(card => !card.isRevealed)
@@ -138,7 +158,6 @@ function App() {
         currentPlayerIndex: prev.currentPlayerIndex,
         logs: prev.logs
       }));
-      alert(`${winner.name}の勝利！`);
     }
   };
 
@@ -507,6 +526,38 @@ function App() {
               {gameState.players.map(player => (
                 <div key={player.id} className="player-item">
                   {player.name} {player.isComputer ? '(コンピューター)' : ''}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : gameState.gameStatus === 'finished' ? (
+          <div>
+            <div className="winner-message">
+              <h2>🎉 ゲーム終了 🎉</h2>
+              <h3>{gameState.winner?.name}の勝利！</h3>
+              <button className="restart-button" onClick={resetGame}>
+                もう一度遊ぶ
+              </button>
+            </div>
+            <div className="game-board">
+              {gameState.players.map((player, playerIndex) => (
+                <div key={player.id} className="player-section">
+                  <h2>
+                    {player.name}
+                    {player.id === gameState.winner?.id && ' 👑'}
+                  </h2>
+                  <div className="player-cards">
+                    {player.cards.map((card, cardIndex) => (
+                      <Card
+                        key={cardIndex}
+                        card={card}
+                        isHidden={false}
+                        isSelected={false}
+                        onClick={() => {}}
+                        index={cardIndex}
+                      />
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
