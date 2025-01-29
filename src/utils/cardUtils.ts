@@ -1,4 +1,5 @@
-import { Card, Player } from '../types/game'
+import { Card, Player, GameState } from '../types/game'
+import { makeStrategicGuess } from './computerStrategy'
 
 export const getDisplayNumber = (number: number): string => {
   switch (number) {
@@ -23,14 +24,6 @@ export const shuffleCards = (cards: Card[]): Card[] => {
 };
 
 // コンピュータープレイヤーのカード予想
-export const computerGuess = (targetPlayer: Player): { suit: Card['suit'], number: number } | null => {
-  // 表になっていないカードの中からランダムに1枚選ぶ
-  const unrevealedCards = targetPlayer.cards.filter(card => !card.isRevealed);
-  if (unrevealedCards.length === 0) return null;
-
-  const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
-  return {
-    suit: randomCard.suit,
-    number: randomCard.number
-  };
+export const computerGuess = (gameState: GameState, targetPlayer: Player, cardIndex: number): { suit: Card['suit'], number: number } | null => {
+  return makeStrategicGuess(gameState, targetPlayer, cardIndex);
 }; 
