@@ -820,3 +820,54 @@ h1 {
   color: #8bc34a;
   font-weight: bold;
 }
+
+.computer-settings {
+  margin: 20px 0;
+  padding: 20px;
+  background-color: #3d3d3d;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.computer-settings h2 {
+  color: #8bc34a;
+  margin-bottom: 15px;
+  font-size: 1.4em;
+}
+
+.computer-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.computer-setting-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+  background-color: #4a4a4a;
+  border-radius: 6px;
+  color: #ffffff;
+}
+
+.computer-setting-item label {
+  font-weight: bold;
+  margin-right: 15px;
+}
+
+.computer-setting-item select {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.computer-setting-item select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #8bc34a;
+}

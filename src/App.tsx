@@ -350,6 +350,22 @@ function App() {
     endTurn(updatedPlayers);
   };
 
+  // コンピューターの設定を管理するための状態を追加
+  const [computerSettings, setComputerSettings] = useState<{[key: number]: Player['skillLevel']}>({
+    1: 'intermediate',
+    2: 'intermediate',
+    3: 'intermediate'
+  });
+
+  // コンピューターの強さを変更する関数
+  const handleComputerSkillChange = (computerId: number, skill: Player['skillLevel']) => {
+    setComputerSettings(prev => ({
+      ...prev,
+      [computerId]: skill
+    }));
+  };
+
+  // startGame関数を更新
   const startGame = () => {
     if (!playerName) {
       alert('プレイヤー名を入力してください。');
@@ -377,6 +393,7 @@ function App() {
         name: 'Computer 1',
         isComputer: true,
         personalityType: 'aggressive',
+        skillLevel: computerSettings[1],
         cards: shuffledCards.slice(cardsPerPlayer, cardsPerPlayer * 2).sort((a, b) => a.number - b.number)
       },
       {
@@ -384,6 +401,7 @@ function App() {
         name: 'Computer 2',
         isComputer: true,
         personalityType: 'cautious',
+        skillLevel: computerSettings[2],
         cards: shuffledCards.slice(cardsPerPlayer * 2, cardsPerPlayer * 3).sort((a, b) => a.number - b.number)
       },
       {
@@ -391,6 +409,7 @@ function App() {
         name: 'Computer 3',
         isComputer: true,
         personalityType: 'balanced',
+        skillLevel: computerSettings[3],
         cards: shuffledCards.slice(cardsPerPlayer * 3, cardsPerPlayer * 4).sort((a, b) => a.number - b.number)
       }
     ];
@@ -740,14 +759,38 @@ function App() {
                 onKeyPress={handleKeyPress}
                 placeholder="あなたの名前を入力"
               />
-              <button onClick={startGame}>ゲームを開始</button>
             </div>
+            
+            <div className="computer-settings">
+              <h2>コンピューターの強さ設定</h2>
+              <div className="computer-settings-list">
+                {[1, 2, 3].map(id => (
+                  <div key={id} className="computer-setting-item">
+                    <label>Computer {id}:</label>
+                    <select
+                      value={computerSettings[id]}
+                      onChange={(e) => handleComputerSkillChange(id, e.target.value as Player['skillLevel'])}
+                    >
+                      <option value="beginner">初級</option>
+                      <option value="intermediate">中級</option>
+                      <option value="expert">上級</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={startGame} className="start-button">ゲームを開始</button>
             
             <div className="players-list">
               <h2>参加プレイヤー:</h2>
-              {gameState.players.map(player => (
-                <div key={player.id} className="player-item">
-                  {player.name} {player.isComputer ? '(コンピューター)' : ''}
+              <div className="player-item">
+                {playerName || 'プレイヤー1'} (あなた)
+              </div>
+              {[1, 2, 3].map(id => (
+                <div key={id} className="player-item">
+                  Computer {id} ({computerSettings[id] === 'beginner' ? '初級' : 
+                               computerSettings[id] === 'intermediate' ? '中級' : '上級'})
                 </div>
               ))}
             </div>

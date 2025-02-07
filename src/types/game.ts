@@ -10,6 +10,7 @@ export interface Player {
   cards: Card[];
   isComputer: boolean;
   personalityType?: 'aggressive' | 'cautious' | 'balanced';
+  skillLevel?: 'beginner' | 'intermediate' | 'expert';
 }
 
 export interface GameLog {
