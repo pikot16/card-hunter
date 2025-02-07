@@ -128,4 +128,46 @@ export const makeStrategicGuess = (
     console.error('Error in makeStrategicGuess:', error);
     return null;
   }
+};
+
+// コンピュータープレイヤーが続けて予想するかどうかを決定する関数
+export const decideToContinue = (player: Player, gameState: GameState): boolean => {
+  // 性格タイプに基づく基本確率を設定
+  let baseProbability = 0.5; // デフォルトは50%
+
+  switch (player.personalityType) {
+    case 'aggressive':
+      baseProbability = 0.6; // 積極的なプレイヤーは60%の確率で続行（80%から調整）
+      break;
+    case 'cautious':
+      baseProbability = 0.2; // 慎重なプレイヤーは20%の確率で続行
+      break;
+    case 'balanced':
+      baseProbability = 0.4; // バランスの取れたプレイヤーは40%の確率で続行（50%から調整）
+      break;
+  }
+
+  // 状況に応じて確率を調整
+  const unrevealedCards = gameState.players
+    .find(p => p.id !== player.id)?.cards
+    .filter(card => !card.isRevealed).length || 0;
+
+  // 残りカードが少ない場合は続行確率を上げる（調整）
+  if (unrevealedCards <= 3) {
+    baseProbability += 0.1; // 0.2から0.1に調整
+  }
+
+  // 自分の手札が多く残っている場合は慎重になる
+  const ownUnrevealedCards = player.cards.filter(card => !card.isRevealed).length;
+  if (ownUnrevealedCards <= 3) {
+    baseProbability += 0.1; // 0.2から0.1に調整（リスクを取りやすさを抑制）
+  } else {
+    baseProbability -= 0.2; // 0.1から0.2に調整（より慎重に）
+  }
+
+  // 最終的な確率を0から1の間に収める
+  const finalProbability = Math.max(0, Math.min(0.7, baseProbability)); // 最大確率を0.7に制限
+
+  // 確率に基づいて決定
+  return Math.random() < finalProbability;
 }; 

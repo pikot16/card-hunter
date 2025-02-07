@@ -9,6 +9,7 @@ export interface Player {
   name: string;
   cards: Card[];
   isComputer: boolean;
+  personalityType?: 'aggressive' | 'cautious' | 'balanced';
 }
 
 export interface GameLog {

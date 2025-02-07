@@ -12,7 +12,7 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({ card, isHidden, isSelected = false, onClick, index }) => {
   const getCardImage = () => {
-    if (isHidden && !card.isRevealed) {
+    if (!card.isRevealed && isHidden) {
       return '/images/cards/back.png';
     }
 
@@ -56,6 +56,10 @@ const Card: React.FC<CardProps> = ({ card, isHidden, isSelected = false, onClick
           src={getCardImage()} 
           alt={`${card.suit} ${card.number}`}
           className="card-image"
+          onError={(e) => {
+            console.error('Failed to load card image:', getCardImage());
+            e.currentTarget.src = '/images/cards/back.png';
+          }}
         />
       </div>
       <div className="card-index">{(index !== undefined) ? index + 1 : ''}</div>

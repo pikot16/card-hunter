@@ -4,6 +4,7 @@ import './App.css'
 import { GameState, Player, Card as CardType, GameLog } from './types/game'
 import { shuffleCards, getDisplayNumber, computerGuess } from './utils/cardUtils'
 import Card from './components/Card'
+import { makeStrategicGuess, decideToContinue } from './utils/computerStrategy'
 
 function App() {
   const [gameState, setGameState] = useState<GameState>({
@@ -31,7 +32,10 @@ function App() {
     isCorrect: boolean;
     updatedPlayers: Player[];
     nextPlayerIndex: number;
+    willContinue: boolean;
   } | null>(null);
+  const [showContinueDialog, setShowContinueDialog] = useState(false);
+  const [correctGuessPlayers, setCorrectGuessPlayers] = useState<Player[]>([]);
 
   // スートの表示用マッピングを追加
   const suitSymbols: { [key: string]: string } = {
@@ -152,13 +156,31 @@ function App() {
 
     if (playersWithUnrevealedCards.length === 1) {
       const winner = playersWithUnrevealedCards[0];
+      
+      // 脱落順を更新
+      const updatedEliminationOrder = [...gameState.eliminationOrder];
+      
+      // まだ脱落順に含まれていないプレイヤーを追加
+      const remainingPlayers = players.filter(player => 
+        player.id !== winner.id && 
+        !updatedEliminationOrder.includes(player.id)
+      );
+      
+      // 残りのプレイヤーを脱落順に追加（最後に脱落したプレイヤーから順に）
+      remainingPlayers.forEach(player => {
+        if (!updatedEliminationOrder.includes(player.id)) {
+          updatedEliminationOrder.push(player.id);
+        }
+      });
+
       setGameState(prev => ({
         ...prev,
         gameStatus: 'finished',
         winner: winner,
         players,
         currentPlayerIndex: prev.currentPlayerIndex,
-        logs: prev.logs
+        logs: prev.logs,
+        eliminationOrder: updatedEliminationOrder
       }));
     }
   };
@@ -171,11 +193,14 @@ function App() {
     const currentPlayer = updatedPlayers[gameState.currentPlayerIndex];
     if (currentPlayer.cards.every(card => card.isRevealed) && 
         !gameState.eliminationOrder.includes(currentPlayer.id)) {
+      // 脱落順を更新
+      const updatedEliminationOrder = [...gameState.eliminationOrder, currentPlayer.id];
+      
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
         currentPlayerIndex: nextIndex,
-        eliminationOrder: [...prev.eliminationOrder, currentPlayer.id]
+        eliminationOrder: updatedEliminationOrder
       }));
     } else {
       setGameState(prev => ({
@@ -230,10 +255,13 @@ function App() {
     if (isCorrect) {
       updatedPlayers[selectedCard.playerIndex].cards[selectedCard.cardIndex].isRevealed = true;
       alert('正解！相手のカードを表にします。\n\n(Enter / Space / OK で閉じる)');
+      
+      // 正解時は選択ダイアログを表示するために状態を更新
+      setCorrectGuessPlayers(updatedPlayers);
+      setShowContinueDialog(true);
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
-        currentPlayerIndex: getNextPlayerIndex(prev.currentPlayerIndex),
         logs: updatedLogs
       }));
     } else {
@@ -266,6 +294,53 @@ function App() {
     setSelectedCard(null);
     setSelectedSuit(null);
     setShowNumberDialog(false);
+  };
+
+  // 正解後の選択を処理する関数を追加
+  const handleContinueChoice = (shouldContinue: boolean) => {
+    if (shouldContinue) {
+      // 続けて予想する場合は、ダイアログを閉じるだけ
+      setShowContinueDialog(false);
+    } else {
+      // 次のプレイヤーに回す場合
+      setGameState(prev => ({
+        ...prev,
+        players: correctGuessPlayers,
+        currentPlayerIndex: getNextPlayerIndex(prev.currentPlayerIndex)
+      }));
+      setShowContinueDialog(false);
+    }
+    setCorrectGuessPlayers([]);
+  };
+
+  // 正解時の選択ダイアログコンポーネント
+  const ContinueDialog = () => {
+    if (!showContinueDialog) return null;
+
+    return (
+      <Draggable handle=".dialog-header">
+        <div className="guess-dialog continue-dialog">
+          <div className="dialog-header">
+            <h3>正解！次の行動を選んでください</h3>
+            <div className="drag-handle">⋮⋮</div>
+          </div>
+          <div className="continue-options">
+            <button 
+              className="continue-button"
+              onClick={() => handleContinueChoice(true)}
+            >
+              続けて予想する
+            </button>
+            <button 
+              className="next-player-button"
+              onClick={() => handleContinueChoice(false)}
+            >
+              次のプレイヤーに回す
+            </button>
+          </div>
+        </div>
+      </Draggable>
+    );
   };
 
   const handleOwnCardSelect = (cardIndex: number) => {
@@ -301,18 +376,21 @@ function App() {
         id: 1,
         name: 'Computer 1',
         isComputer: true,
+        personalityType: 'aggressive',
         cards: shuffledCards.slice(cardsPerPlayer, cardsPerPlayer * 2).sort((a, b) => a.number - b.number)
       },
       {
         id: 2,
         name: 'Computer 2',
         isComputer: true,
+        personalityType: 'cautious',
         cards: shuffledCards.slice(cardsPerPlayer * 2, cardsPerPlayer * 3).sort((a, b) => a.number - b.number)
       },
       {
         id: 3,
         name: 'Computer 3',
         isComputer: true,
+        personalityType: 'balanced',
         cards: shuffledCards.slice(cardsPerPlayer * 3, cardsPerPlayer * 4).sort((a, b) => a.number - b.number)
       }
     ];
@@ -381,6 +459,22 @@ function App() {
 
         if (isCorrect) {
           updatedPlayers[nextTargetIndex].cards[randomCard.index].isRevealed = true;
+          
+          // コンピュータープレイヤーの決定
+          const willContinue = decideToContinue(currentPlayer, gameState);
+          
+          // コンピュータの行動を記録
+          setComputerAction({
+            player: currentPlayer.name,
+            targetPlayer: nextPlayer.name,
+            cardIndex: randomCard.index,
+            guessedCard: finalGuess,
+            isCorrect: isCorrect,
+            updatedPlayers: updatedPlayers,
+            nextPlayerIndex: willContinue ? gameState.currentPlayerIndex : getNextPlayerIndex(gameState.currentPlayerIndex),
+            willContinue: willContinue
+          });
+          setShowComputerActionDialog(true);
         } else {
           const unrevealedOwnCards = currentPlayer.cards
             .map((card, index) => ({ card, index }))
@@ -390,19 +484,20 @@ function App() {
             const randomOwnCard = unrevealedOwnCards[Math.floor(Math.random() * unrevealedOwnCards.length)];
             updatedPlayers[gameState.currentPlayerIndex].cards[randomOwnCard.index].isRevealed = true;
           }
+          
+          // 不正解の場合は必ず次のプレイヤーに移動
+          setComputerAction({
+            player: currentPlayer.name,
+            targetPlayer: nextPlayer.name,
+            cardIndex: randomCard.index,
+            guessedCard: finalGuess,
+            isCorrect: isCorrect,
+            updatedPlayers: updatedPlayers,
+            nextPlayerIndex: getNextPlayerIndex(gameState.currentPlayerIndex),
+            willContinue: false
+          });
+          setShowComputerActionDialog(true);
         }
-
-        // コンピュータの行動を記録
-        setComputerAction({
-          player: currentPlayer.name,
-          targetPlayer: nextPlayer.name,
-          cardIndex: randomCard.index,
-          guessedCard: finalGuess,
-          isCorrect: isCorrect,
-          updatedPlayers: updatedPlayers,
-          nextPlayerIndex: getNextPlayerIndex(gameState.currentPlayerIndex)
-        });
-        setShowComputerActionDialog(true);
 
         // ゲーム状態の更新
         setGameState(prev => ({
@@ -452,7 +547,6 @@ function App() {
     if (!computerAction || !showComputerActionDialog) return null;
 
     const handleContinue = () => {
-      // ダイアログを閉じる前にゲーム状態を更新
       setGameState(prev => ({
         ...prev,
         players: computerAction.updatedPlayers,
@@ -498,6 +592,13 @@ function App() {
               {getDisplayCard(computerAction.guessedCard.suit, computerAction.guessedCard.number)}と予想
               <span className="result-symbol">{computerAction.isCorrect ? '○' : '×'}</span>
             </div>
+            {computerAction.isCorrect && (
+              <div className="computer-decision">
+                <span className="decision-text">
+                  {computerAction.willContinue ? '続けて予想します' : '次のプレイヤーに回します'}
+                </span>
+              </div>
+            )}
           </div>
           <button 
             className="action-continue-button"
@@ -532,12 +633,29 @@ function App() {
     const ranks = new Map();
     
     // 勝者（最後まで残ったプレイヤー）は1位
-    ranks.set(gameState.winner?.id, 1);
+    if (gameState.winner) {
+      ranks.set(gameState.winner.id, 1);
+    }
     
-    // 脱落順に基づいて順位を設定（最後に脱落 = 2位、最初に脱落 = 4位）
-    gameState.eliminationOrder.forEach((playerId, index) => {
-      ranks.set(playerId, gameState.eliminationOrder.length - index + 1);
+    // 脱落順を逆順にして順位を設定（最後に脱落 = 2位、最初に脱落 = 4位）
+    const eliminationOrder = [...gameState.eliminationOrder];
+    const reversedElimination = eliminationOrder.reverse();
+    
+    // 脱落順の逆順で順位を設定
+    reversedElimination.forEach((playerId, index) => {
+      if (playerId !== gameState.winner?.id) {  // 勝者は既に1位が設定されているのでスキップ
+        ranks.set(playerId, index + 2);  // 2位から開始
+      }
     });
+
+    // デバッグ用のログ出力
+    console.log('Winner:', gameState.winner?.name);
+    console.log('Elimination Order:', gameState.eliminationOrder.map(id => 
+      gameState.players.find(p => p.id === id)?.name
+    ));
+    console.log('Ranks:', Array.from(ranks.entries()).map(([id, rank]) => 
+      `${gameState.players.find(p => p.id === id)?.name}: ${rank}位`
+    ));
 
     return ranks;
   };
@@ -552,9 +670,8 @@ function App() {
       <div className="player-stats">
         <h3>
           {player.name}
-          <span className="player-rank">
-            {rank}位
-            {rank === 1 && ' 👑'}
+          <span className={`player-rank ${rank === 1 ? 'first' : ''}`}>
+            {rank}位{rank === 1 && ' 👑'}
           </span>
         </h3>
         <div className="stats-item">
@@ -639,7 +756,7 @@ function App() {
           <div>
             <div className="winner-message">
               <h2>🎉 ゲーム終了 🎉</h2>
-              <h3>{gameState.winner?.name}の勝利！ (1位 👑)</h3>
+              <h3>{gameState.winner?.name}の勝利！</h3>
               <button className="restart-button" onClick={resetGame}>
                 もう一度遊ぶ
               </button>
@@ -704,8 +821,7 @@ function App() {
                 <h2 className={playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''}>
                   {player.name}
                   {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー)' : ''}
-                  {playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
-                    gameState.currentPlayerIndex === 0 && ' (予想対象)'}
+                  {playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && ' (予想対象)'}
                   {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
                     ' - 表にするカードを選んでください'}
                 </h2>
@@ -714,7 +830,7 @@ function App() {
                     <Card
                       key={cardIndex}
                       card={card}
-                      isHidden={playerIndex !== 0}
+                      isHidden={playerIndex !== 0 && !card.isRevealed}
                       isSelected={
                         selectedCard?.playerIndex === playerIndex &&
                         selectedCard?.cardIndex === cardIndex
@@ -802,10 +918,11 @@ function App() {
       </div>
 
       {showComputerActionDialog && <ComputerActionDialog />}
+      {showContinueDialog && <ContinueDialog />}
       
       {gameState.gameStatus === 'playing' && <GameLogs />}
     </div>
   )
 }
 
-export default App
+export default App 
