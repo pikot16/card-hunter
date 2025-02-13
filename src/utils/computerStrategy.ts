@@ -11,7 +11,7 @@ interface CardProbability {
 const SKILL_LEVEL_FACTORS = {
   beginner: 0.3,    // 30%の精度
   intermediate: 0.6, // 60%の精度
-  expert: 0.9,      // 90%の精度
+  expert: 0.95       // 95%の精度に引き上げ
 };
 
 // 既に公開されているカードを収集
@@ -27,12 +27,36 @@ const isCardRevealed = (revealedCards: Card[], suit: Card['suit'], number: numbe
 };
 
 // カードの位置に基づいて可能な数字の範囲を計算
-const getPossibleNumberRange = (cardIndex: number, totalCards: number): { min: number; max: number } => {
-  // カードは昇順で並んでいるため、位置に基づいて可能な数字の範囲を計算
-  const segmentSize = 13 / totalCards;
-  const minNumber = Math.max(1, Math.floor(cardIndex * segmentSize));
-  const maxNumber = Math.min(13, Math.ceil((cardIndex + 1) * segmentSize));
-  
+const getPossibleNumberRange = (
+  cardIndex: number, 
+  player: Player,
+  allPlayers: Player[]
+): { min: number; max: number } => {
+  const cards = player.cards;
+  let minNumber = 1;
+  let maxNumber = 13;
+
+  // 同じプレイヤーの公開カードから範囲を制限
+  let lastRevealedNumber = 0;
+  for (let i = 0; i < cards.length; i++) {
+    if (cards[i].isRevealed) {
+      if (i < cardIndex) {
+        // 対象より前の位置にある公開カードの数字以上でなければならない
+        // 同じ数字の異なるスートは許容
+        lastRevealedNumber = cards[i].number;
+        minNumber = Math.max(minNumber, lastRevealedNumber);
+      } else if (i > cardIndex) {
+        // 対象より後の位置にある公開カードの数字以下でなければならない
+        // 同じ数字の異なるスートは許容
+        maxNumber = Math.min(maxNumber, cards[i].number);
+      }
+    }
+  }
+
+  // デバッグ用のログ
+  console.log(`Card ${cardIndex + 1} range from revealed cards: ${minNumber} - ${maxNumber}`);
+  console.log(`Last revealed number before index: ${lastRevealedNumber}`);
+
   return { min: minNumber, max: maxNumber };
 };
 
@@ -59,6 +83,104 @@ const getImpossibleCards = (gameState: GameState, targetPlayer: Player): Array<{
   return impossibleCards;
 };
 
+// 過去の予想を記録するためのメモリ
+const guessHistory = new Map<string, Array<{
+  cardIndex: number;
+  suit: Card['suit'];
+  number: number;
+  isCorrect: boolean;
+}>>();
+
+// カードの連続性に基づく確率調整を行う関数を追加
+const calculateSequentialProbability = (
+  cardIndex: number,
+  number: number,
+  player: Player,
+  revealedCards: Card[]
+): number => {
+  let probability = 1.0;
+
+  // 前のカードの数字を推定
+  const previousNumbers: number[] = [];
+  for (let i = 0; i < cardIndex; i++) {
+    const card = player.cards[i];
+    if (card.isRevealed) {
+      previousNumbers.push(card.number);
+    }
+  }
+
+  // 同じ数字が連続する確率を低く設定
+  if (previousNumbers.length > 0) {
+    const lastKnownNumber = previousNumbers[previousNumbers.length - 1];
+    if (number === lastKnownNumber) {
+      probability *= 0.3; // 同じ数字が続く確率を30%に抑制
+    }
+  }
+
+  // 未公開の前のカードがある場合の確率調整
+  const unrevealedPreviousCards = cardIndex - previousNumbers.length;
+  if (unrevealedPreviousCards > 0) {
+    // 位置に応じた期待値からの確率計算
+    const expectedMinNumber = Math.max(1, Math.floor((cardIndex - 1) * 13 / player.cards.length));
+    if (number < expectedMinNumber) {
+      probability *= 0.5; // 期待値より小さい数字の確率を50%に抑制
+    }
+  }
+
+  return probability;
+};
+
+// カードの初期分配確率を考慮した確率調整を行う関数を追加
+const calculateDistributionProbability = (
+  number: number,
+  suit: Card['suit'],
+  cardIndex: number,
+  player: Player,
+  allPlayers: Player[]
+): number => {
+  let probability = 1.0;
+
+  // 同じ数字のカードの出現状況を確認
+  const sameNumberCount = allPlayers.reduce((count, p) => 
+    count + p.cards.filter(c => c.isRevealed && c.number === number).length,
+    0
+  );
+
+  // 同じ数字が既に多く出ている場合は確率を下げる
+  if (sameNumberCount > 0) {
+    probability *= Math.pow(0.5, sameNumberCount); // より厳しく抑制（0.7→0.5）
+  }
+
+  // カードの位置に基づく確率計算を厳密化
+  const totalCards = player.cards.length; // 通常は13
+  const position = cardIndex + 1; // 1-indexed
+
+  // 理論的な位置に基づく確率計算
+  const expectedPosition = ((number - 1) * totalCards / 13) + 1;
+  const positionDiff = Math.abs(position - expectedPosition);
+  
+  // 位置の差が大きいほど確率を大きく下げる
+  // 例：差が5以上ある場合は確率を0.01以下に
+  if (positionDiff >= 5) {
+    probability *= 0.01;
+  } else if (positionDiff >= 3) {
+    probability *= 0.1;
+  } else if (positionDiff >= 2) {
+    probability *= 0.3;
+  } else if (positionDiff >= 1) {
+    probability *= 0.7;
+  }
+
+  // 極端な位置の場合の追加ペナルティ
+  // 例：2がラスト付近にある、Kが最初の方にあるなど
+  if ((number <= 3 && position >= totalCards - 2) || 
+      (number >= 11 && position <= 2)) {
+    probability *= 0.01;
+  }
+
+  return probability;
+};
+
 // カードの確率を計算する際に過去の予想結果を考慮
 const calculateCardProbabilities = (
   gameState: GameState,
@@ -69,38 +191,42 @@ const calculateCardProbabilities = (
   const impossibleCards = getImpossibleCards(gameState, targetPlayer);
   const probabilities: CardProbability[] = [];
   const suits: Card['suit'][] = ['hearts', 'diamonds', 'clubs', 'spades'];
+  const revealedCards = getRevealedCards(gameState.players);
+  
+  // 過去の予想履歴を取得
+  const playerKey = `${targetPlayer.name}-${cardIndex}`;
+  const cardHistory = guessHistory.get(playerKey) || [];
   
   // カードの位置に基づいて可能な数字の範囲を取得
-  const unrevealedCards = targetPlayer.cards.filter(card => !card.isRevealed);
-  const { min, max } = getPossibleNumberRange(cardIndex, unrevealedCards.length);
+  const { min, max } = getPossibleNumberRange(cardIndex, targetPlayer, gameState.players);
+  
+  // 範囲が無効な場合は空の配列を返す
+  if (min > max) {
+    return [];
+  }
+
   const possibleNumbers = Array.from(
     { length: max - min + 1 }, 
     (_, i) => min + i
   );
 
-  // 前のカードの数字を取得（存在する場合）
-  const previousCard = cardIndex > 0 ? targetPlayer.cards[cardIndex - 1] : null;
-  const minAllowedNumber = previousCard?.isRevealed ? previousCard.number : 1;
-
-  // 次のカードの数字を取得（存在する場合）
-  const nextCard = cardIndex < targetPlayer.cards.length - 1 ? targetPlayer.cards[cardIndex + 1] : null;
-  const maxAllowedNumber = nextCard?.isRevealed ? nextCard.number : 13;
-
-  // 過去の正解の予想から傾向を分析
-  const correctGuesses = gameState.logs.filter(log => 
-    log.targetPlayer === targetPlayer.name && log.isCorrect
-  );
-  const suitTendency = new Map<Card['suit'], number>();
-  suits.forEach(suit => {
-    const suitCorrectCount = correctGuesses.filter(log => log.guessedSuit === suit).length;
-    suitTendency.set(suit, suitCorrectCount);
-  });
-
-  // 各スートと数字の組み合わせについて確率を計算
   suits.forEach(suit => {
     possibleNumbers.forEach(number => {
-      // 数字が前後のカードの制約を満たしているか確認
-      if (number < minAllowedNumber || number > maxAllowedNumber) {
+      // 既に他の位置で使用されているカードはスキップ
+      if (gameState.players.some(player =>
+        player.cards.some(card =>
+          card.isRevealed && card.suit === suit && card.number === number
+        )
+      )) {
+        return;
+      }
+
+      // 過去に不正解だった予想はスキップ
+      if (cardHistory.some(guess => 
+        guess.suit === suit && 
+        guess.number === number && 
+        !guess.isCorrect
+      )) {
         return;
       }
 
@@ -109,31 +235,26 @@ const calculateCardProbabilities = (
         return;
       }
 
-      // 基本確率を設定
       let probability = 1.0;
 
-      // カードの位置に基づく確率の調整（修正）
-      const position = cardIndex + 1;  // 1-based index
-      const expectedNumber = Math.floor((position * 13) / 14);  // より正確な期待値
-      const positionProbability = 1 - (Math.abs(number - expectedNumber) / 13);
-      probability *= positionProbability;
+      // カードの連続性による確率調整
+      probability *= calculateSequentialProbability(
+        cardIndex,
+        number,
+        targetPlayer,
+        revealedCards
+      );
 
-      // 同じスートと数字の調整を加算的に行う
-      const sameRevealedSuit = impossibleCards.filter(card => card.suit === suit).length;
-      const sameRevealedNumber = impossibleCards.filter(card => card.number === number).length;
-      probability *= (1 - (sameRevealedSuit / 26) - (sameRevealedNumber / 8));
+      // カードの分配確率による調整
+      probability *= calculateDistributionProbability(
+        number,
+        suit,
+        cardIndex,
+        targetPlayer,
+        gameState.players
+      );
 
-      // 前後のカードによる制約を強化
-      if (previousCard?.isRevealed && nextCard?.isRevealed) {
-        const isInRange = number > previousCard.number && number < nextCard.number;
-        probability *= isInRange ? 2.0 : 0.1;  // より強い制約
-      }
-
-      // 過去の正解パターンに基づく調整
-      const suitSuccessRate = (suitTendency.get(suit) || 0) / Math.max(1, correctGuesses.length);
-      probability *= (1 + suitSuccessRate);
-
-      // スキルレベルは最後に適用
+      // スキルレベルによる調整
       probability *= SKILL_LEVEL_FACTORS[skillLevel || 'intermediate'];
 
       // 確率が0より大きい場合のみ追加
@@ -144,6 +265,20 @@ const calculateCardProbabilities = (
   });
 
   return probabilities;
+};
+
+// 予想結果を記録する関数
+const recordGuess = (
+  targetPlayer: Player,
+  cardIndex: number,
+  suit: Card['suit'],
+  number: number,
+  isCorrect: boolean
+) => {
+  const playerKey = `${targetPlayer.name}-${cardIndex}`;
+  const history = guessHistory.get(playerKey) || [];
+  history.push({ cardIndex, suit, number, isCorrect });
+  guessHistory.set(playerKey, history);
 };
 
 // 最も確率の高いカードを選択（スキルレベルに応じて選択方法を変える）
@@ -158,11 +293,26 @@ const selectBestGuess = (
   // 確率でソート
   const sorted = [...probabilities].sort((a, b) => b.probability - a.probability);
   
-  // スキルレベルに応じた選択範囲をより厳密に
+  // 上級レベルの場合は、確率が極端に低い選択肢を除外
+  if (skillLevel === 'expert') {
+    const topProbability = sorted[0].probability;
+    // 最高確率の1%未満の確率の選択肢は除外
+    const viableChoices = sorted.filter(card => 
+      card.probability >= topProbability * 0.01
+    );
+    
+    // 残った選択肢の中から、最も確率の高いものを選択
+    return {
+      suit: viableChoices[0].suit,
+      number: viableChoices[0].number
+    };
+  }
+
+  // その他のレベルは従来の選択方法を使用（変更なし）
   const selectionRatio = {
-    beginner: 0.5,     // 上位50%
-    intermediate: 0.3,  // 上位30%
-    expert: 0.1        // 上位10%
+    beginner: 0.5,
+    intermediate: 0.2,
+    expert: 0.1
   }[skillLevel || 'intermediate'];
 
   const poolSize = Math.max(1, Math.ceil(sorted.length * selectionRatio));
@@ -188,7 +338,7 @@ const selectBestGuess = (
   };
 };
 
-// メインの予想ロジック
+// メインの予想ロジックを修正
 export const makeStrategicGuess = (
   gameState: GameState,
   targetPlayer: Player,
@@ -196,12 +346,7 @@ export const makeStrategicGuess = (
 ): { suit: Card['suit'], number: number } | null => {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   
-  // 表になっていないカードがない場合はnullを返す
-  const unrevealedCards = targetPlayer.cards.filter(card => !card.isRevealed);
-  if (unrevealedCards.length === 0) return null;
-
   try {
-    // カードの確率を計算（スキルレベルを考慮）
     const probabilities = calculateCardProbabilities(
       gameState,
       targetPlayer,
@@ -211,8 +356,19 @@ export const makeStrategicGuess = (
     
     if (probabilities.length === 0) return null;
 
-    // 最適な予想を選択（スキルレベルを考慮）
-    return selectBestGuess(probabilities, currentPlayer.skillLevel);
+    const guess = selectBestGuess(probabilities, currentPlayer.skillLevel);
+    
+    // 予想を記録
+    recordGuess(
+      targetPlayer,
+      cardIndex,
+      guess.suit,
+      guess.number,
+      targetPlayer.cards[cardIndex].suit === guess.suit && 
+      targetPlayer.cards[cardIndex].number === guess.number
+    );
+
+    return guess;
   } catch (error) {
     console.error('Error in makeStrategicGuess:', error);
     return null;
@@ -221,19 +377,19 @@ export const makeStrategicGuess = (
 
 // コンピュータープレイヤーが続けて予想するかどうかを決定する関数
 export const decideToContinue = (player: Player, gameState: GameState): boolean => {
-  // スキルレベルに基づく基本確率を設定
-  let baseProbability = SKILL_LEVEL_FACTORS[player.skillLevel || 'intermediate'];
+  // 性格タイプに基づく基本確率を設定
+  let baseProbability = 0.5; // デフォルトは50%
 
   // 性格タイプに基づいて確率を調整
   switch (player.personalityType) {
     case 'aggressive':
-      baseProbability *= 1.2; // より積極的に
+      baseProbability = 0.8; // 80%の確率で続行
       break;
     case 'cautious':
-      baseProbability *= 0.8; // より慎重に
+      baseProbability = 0.2; // 20%の確率で続行
       break;
     case 'balanced':
-      // 変更なし
+      baseProbability = 0.5; // 50%の確率で続行
       break;
   }
 

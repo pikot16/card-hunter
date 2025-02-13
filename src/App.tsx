@@ -5,6 +5,8 @@ import { GameState, Player, Card as CardType, GameLog } from './types/game'
 import { shuffleCards, getDisplayNumber, computerGuess } from './utils/cardUtils'
 import Card from './components/Card'
 import { makeStrategicGuess, decideToContinue } from './utils/computerStrategy'
+import { runTest } from './utils/runAITest'
+import { stopTest } from './utils/aiTest'
 
 function App() {
   const [gameState, setGameState] = useState<GameState>({
@@ -15,6 +17,13 @@ function App() {
     logs: [],
     eliminationOrder: []
   });
+
+  // コンピューターの初期スキルレベルを設定
+  const defaultComputerSkills: { [key: string]: Player['skillLevel'] } = {
+    'Computer 1': 'beginner',
+    'Computer 2': 'intermediate',
+    'Computer 3': 'expert'
+  };
 
   const [playerName, setPlayerName] = useState<string>('');
   const [selectedCard, setSelectedCard] = useState<{playerIndex: number, cardIndex: number} | null>(null);
@@ -36,6 +45,7 @@ function App() {
   } | null>(null);
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [correctGuessPlayers, setCorrectGuessPlayers] = useState<Player[]>([]);
+  const [isTestRunning, setIsTestRunning] = useState(false);
 
   // スートの表示用マッピングを追加
   const suitSymbols: { [key: string]: string } = {
@@ -130,7 +140,7 @@ function App() {
   // ゲームをリセットする関数を追加
   const resetGame = () => {
     setGameState({
-      players: [],
+      players: initializePlayers(playerName),  // プレイヤー名を渡す
       currentPlayerIndex: 0,
       gameStatus: 'waiting',
       winner: null,
@@ -146,6 +156,102 @@ function App() {
     setDialogPosition({ x: 0, y: 0 });
     setShowComputerActionDialog(false);
     setComputerAction(null);
+  };
+
+  // コンピューターの設定を管理するための状態を追加
+  const [computerSettings, setComputerSettings] = useState<{
+    [key: number]: {
+      skillLevel: Player['skillLevel'];
+      personalityType: Player['personalityType'];
+    }
+  }>({
+    1: {
+      skillLevel: defaultComputerSkills['Computer 1'],
+      personalityType: 'aggressive'
+    },
+    2: {
+      skillLevel: defaultComputerSkills['Computer 2'],
+      personalityType: 'balanced'
+    },
+    3: {
+      skillLevel: defaultComputerSkills['Computer 3'],
+      personalityType: 'cautious'
+    }
+  });
+
+  // コンピューターの強さを変更する関数
+  const handleComputerSkillChange = (computerId: number, skill: Player['skillLevel']) => {
+    setComputerSettings(prev => ({
+      ...prev,
+      [computerId]: {
+        ...prev[computerId],
+        skillLevel: skill
+      }
+    }));
+  };
+
+  // コンピューターの性格を変更する関数
+  const handleComputerPersonalityChange = (computerId: number, personality: Player['personalityType']) => {
+    setComputerSettings(prev => ({
+      ...prev,
+      [computerId]: {
+        ...prev[computerId],
+        personalityType: personality
+      }
+    }));
+  };
+
+  // プレイヤーを初期化する関数を修正
+  const initializePlayers = (playerName: string) => {
+    // カードデッキを作成
+    const suits = ['hearts', 'diamonds', 'clubs', 'spades'] as const;
+    const numbers = Array.from({ length: 13 }, (_, i) => i + 1);
+    const allCards = suits.flatMap(suit =>
+      numbers.map(number => ({ suit, number, isRevealed: false }))
+    );
+
+    // デッキをシャッフル
+    const deck = shuffleCards(allCards);
+    
+    const players: Player[] = [
+      {
+        id: 0,
+        name: playerName || 'test',
+        cards: deck.slice(0, 13),
+        isComputer: false
+      },
+      {
+        id: 1,
+        name: 'Computer 1',
+        cards: deck.slice(13, 26),
+        isComputer: true,
+        personalityType: computerSettings[1].personalityType,
+        skillLevel: computerSettings[1].skillLevel
+      },
+      {
+        id: 2,
+        name: 'Computer 2',
+        cards: deck.slice(26, 39),
+        isComputer: true,
+        personalityType: computerSettings[2].personalityType,
+        skillLevel: computerSettings[2].skillLevel
+      },
+      {
+        id: 3,
+        name: 'Computer 3',
+        cards: deck.slice(39, 52),
+        isComputer: true,
+        personalityType: computerSettings[3].personalityType,
+        skillLevel: computerSettings[3].skillLevel
+      }
+    ];
+
+    // 各プレイヤーのカードを昇順にソート
+    players.forEach(player => {
+      player.cards.sort((a, b) => a.number - b.number);
+    });
+
+    return players;
   };
 
   // ゲーム終了の判定を更新
@@ -256,13 +362,45 @@ function App() {
       updatedPlayers[selectedCard.playerIndex].cards[selectedCard.cardIndex].isRevealed = true;
       alert('正解！相手のカードを表にします。\n\n(Enter / Space / OK で閉じる)');
       
+      // 対象プレイヤーの全カードが表になったかチェック
+      const targetPlayerAllRevealed = updatedPlayers[selectedCard.playerIndex].cards.every(card => card.isRevealed);
+      
+      // 生存プレイヤー数をカウント
+      const survivingPlayers = updatedPlayers.filter(player => 
+        !player.cards.every(card => card.isRevealed)
+      );
+
+      if (targetPlayerAllRevealed) {
+        // 脱落順を更新
+        const updatedEliminationOrder = [...gameState.eliminationOrder];
+        if (!updatedEliminationOrder.includes(targetPlayer.id)) {
+          updatedEliminationOrder.push(targetPlayer.id);
+        }
+
+        // 生存プレイヤーが1人（自分だけ）になった場合はゲーム終了
+        if (survivingPlayers.length === 1) {
+          setGameState(prev => ({
+            ...prev,
+            players: updatedPlayers,
+            gameStatus: 'finished',
+            winner: survivingPlayers[0],
+            logs: updatedLogs,
+            eliminationOrder: updatedEliminationOrder
+          }));
+          return;
+        }
+      }
+      
       // 正解時は選択ダイアログを表示するために状態を更新
       setCorrectGuessPlayers(updatedPlayers);
       setShowContinueDialog(true);
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
-        logs: updatedLogs
+        logs: updatedLogs,
+        eliminationOrder: targetPlayerAllRevealed ? 
+          [...prev.eliminationOrder, targetPlayer.id] : 
+          prev.eliminationOrder
       }));
     } else {
       alert('不正解... 自分のカードを1枚クリックして表にしてください。\n\n(Enter / Space / OK で閉じる)');
@@ -350,21 +488,6 @@ function App() {
     endTurn(updatedPlayers);
   };
 
-  // コンピューターの設定を管理するための状態を追加
-  const [computerSettings, setComputerSettings] = useState<{[key: number]: Player['skillLevel']}>({
-    1: 'intermediate',
-    2: 'intermediate',
-    3: 'intermediate'
-  });
-
-  // コンピューターの強さを変更する関数
-  const handleComputerSkillChange = (computerId: number, skill: Player['skillLevel']) => {
-    setComputerSettings(prev => ({
-      ...prev,
-      [computerId]: skill
-    }));
-  };
-
   // startGame関数を更新
   const startGame = () => {
     if (!playerName) {
@@ -392,24 +515,24 @@ function App() {
         id: 1,
         name: 'Computer 1',
         isComputer: true,
-        personalityType: 'aggressive',
-        skillLevel: computerSettings[1],
+        personalityType: computerSettings[1].personalityType,
+        skillLevel: computerSettings[1].skillLevel,
         cards: shuffledCards.slice(cardsPerPlayer, cardsPerPlayer * 2).sort((a, b) => a.number - b.number)
       },
       {
         id: 2,
         name: 'Computer 2',
         isComputer: true,
-        personalityType: 'cautious',
-        skillLevel: computerSettings[2],
+        personalityType: computerSettings[2].personalityType,
+        skillLevel: computerSettings[2].skillLevel,
         cards: shuffledCards.slice(cardsPerPlayer * 2, cardsPerPlayer * 3).sort((a, b) => a.number - b.number)
       },
       {
         id: 3,
         name: 'Computer 3',
         isComputer: true,
-        personalityType: 'balanced',
-        skillLevel: computerSettings[3],
+        personalityType: computerSettings[3].personalityType,
+        skillLevel: computerSettings[3].skillLevel,
         cards: shuffledCards.slice(cardsPerPlayer * 3, cardsPerPlayer * 4).sort((a, b) => a.number - b.number)
       }
     ];
@@ -715,6 +838,58 @@ function App() {
     );
   };
 
+  const handleTestStart = async () => {
+    setIsTestRunning(true);
+    try {
+      console.log('テストを開始します...');
+      await runTest();
+    } catch (error) {
+      console.error('テスト実行中にエラーが発生しました:', error);
+    } finally {
+      setIsTestRunning(false);
+    }
+  };
+
+  const handleTestStop = () => {
+    console.log('テストを中断します...');
+    stopTest();
+    setIsTestRunning(false);
+  };
+
+  // コンピューター設定のUIを更新
+  const ComputerSettingsUI = () => (
+    <div className="computer-settings">
+      <h2>コンピューターの設定</h2>
+      <div className="computer-settings-list">
+        {[1, 2, 3].map(id => (
+          <div key={id} className="computer-setting-item">
+            <label>Computer {id}:</label>
+            <div className="computer-setting-controls">
+              <select
+                value={computerSettings[id].skillLevel}
+                onChange={(e) => handleComputerSkillChange(id, e.target.value as Player['skillLevel'])}
+                className="skill-select"
+              >
+                <option value="beginner">初級</option>
+                <option value="intermediate">中級</option>
+                <option value="expert">上級</option>
+              </select>
+              <select
+                value={computerSettings[id].personalityType}
+                onChange={(e) => handleComputerPersonalityChange(id, e.target.value as Player['personalityType'])}
+                className="personality-select"
+              >
+                <option value="aggressive">積極的</option>
+                <option value="balanced">バランス型</option>
+                <option value="cautious">慎重</option>
+              </select>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="game-container">
       <div className="game-main">
@@ -761,23 +936,28 @@ function App() {
               />
             </div>
             
-            <div className="computer-settings">
-              <h2>コンピューターの強さ設定</h2>
-              <div className="computer-settings-list">
-                {[1, 2, 3].map(id => (
-                  <div key={id} className="computer-setting-item">
-                    <label>Computer {id}:</label>
-                    <select
-                      value={computerSettings[id]}
-                      onChange={(e) => handleComputerSkillChange(id, e.target.value as Player['skillLevel'])}
-                    >
-                      <option value="beginner">初級</option>
-                      <option value="intermediate">中級</option>
-                      <option value="expert">上級</option>
-                    </select>
-                  </div>
-                ))}
-              </div>
+            <ComputerSettingsUI />
+
+            <div className="test-controls" style={{ marginTop: '20px', padding: '10px', backgroundColor: '#3d3d3d', borderRadius: '8px' }}>
+              <h3 style={{ color: '#8bc34a', marginBottom: '10px' }}>AIテスト</h3>
+              {!isTestRunning ? (
+                <button 
+                  onClick={handleTestStart}
+                  className="start-test-button"
+                >
+                  AIシミュレーションを実行 (1ゲーム)
+                </button>
+              ) : (
+                <button 
+                  onClick={handleTestStop}
+                  className="stop-test-button"
+                >
+                  テストを中断
+                </button>
+              )}
+              <p style={{ color: '#bbb', fontSize: '14px', marginTop: '10px' }}>
+                結果はブラウザのコンソールに表示されます
+              </p>
             </div>
 
             <button onClick={startGame} className="start-button">ゲームを開始</button>
@@ -789,8 +969,8 @@ function App() {
               </div>
               {[1, 2, 3].map(id => (
                 <div key={id} className="player-item">
-                  Computer {id} ({computerSettings[id] === 'beginner' ? '初級' : 
-                               computerSettings[id] === 'intermediate' ? '中級' : '上級'})
+                  Computer {id} ({computerSettings[id].skillLevel === 'beginner' ? '初級' : 
+                               computerSettings[id].skillLevel === 'intermediate' ? '中級' : '上級'})
                 </div>
               ))}
             </div>

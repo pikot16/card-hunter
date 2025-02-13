@@ -824,15 +824,13 @@ h1 {
 .computer-settings {
   margin: 20px 0;
   padding: 20px;
-  background-color: #3d3d3d;
+  background-color: #2a2a2a;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .computer-settings h2 {
   color: #8bc34a;
   margin-bottom: 15px;
-  font-size: 1.4em;
 }
 
 .computer-settings-list {
@@ -846,28 +844,65 @@ h1 {
   align-items: center;
   justify-content: space-between;
   padding: 10px;
-  background-color: #4a4a4a;
-  border-radius: 6px;
-  color: #ffffff;
+  background-color: #3d3d3d;
+  border-radius: 4px;
 }
 
 .computer-setting-item label {
+  color: #fff;
   font-weight: bold;
   margin-right: 15px;
 }
 
-.computer-setting-item select {
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  background-color: #ffffff;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  min-width: 100px;
+.computer-setting-controls {
+  display: flex;
+  gap: 10px;
 }
 
-.computer-setting-item select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px #8bc34a;
+.skill-select, .personality-select {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 4px;
+  background-color: #4a4a4a;
+  color: #fff;
+  cursor: pointer;
+}
+
+.skill-select:hover, .personality-select:hover {
+  background-color: #5a5a5a;
+}
+
+.test-controls button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.test-controls .start-test-button {
+  background-color: #2196F3;
+  color: white;
+}
+
+.test-controls .stop-test-button {
+  background-color: #f44336;
+  color: white;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+  }
 }
