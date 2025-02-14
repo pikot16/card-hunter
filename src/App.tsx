@@ -395,8 +395,12 @@ function App() {
         }
       }
       
-      setCorrectGuessPlayers(updatedPlayers);
-      setShowContinueDialog(true);
+      // ゲーム終了条件を満たしていない場合のみ続行ダイアログを表示
+      if (survivingPlayers.length > 1) {
+        setCorrectGuessPlayers(updatedPlayers);
+        setShowContinueDialog(true);
+      }
+      
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
@@ -753,7 +757,18 @@ function App() {
             {log.isCorrect && (
               (log.willContinue !== undefined || (showComputerActionDialog && computerAction?.isCorrect)) && (
                 <div className="log-content continuation-status">
-                  → {(log.willContinue !== undefined ? log.willContinue : computerAction?.willContinue) ? '続けて予想' : '次のプレイヤーに交代'}
+                  → {(() => {
+                    // 最後の1人になった時のみゲーム終了を表示
+                    const survivingPlayers = gameState.players.filter(p => 
+                      !p.cards.every(card => card.isRevealed)
+                    );
+                    if (survivingPlayers.length === 1) {
+                      return 'ゲーム終了';
+                    }
+                    // 通常の場合
+                    return (log.willContinue !== undefined ? log.willContinue : computerAction?.willContinue) ? 
+                      '続けて予想' : '次のプレイヤーに交代';
+                  })()}
                 </div>
               )
             )}
@@ -823,16 +838,15 @@ function App() {
       ranks.set(gameState.winner.id, 1);
     }
     
-    // 脱落順から順位を設定（最後に脱落 = 2位、最初に脱落 = 4位）
-    const eliminationOrder = [...gameState.eliminationOrder];
+    // 脱落順から順位を設定（最初に脱落 = 4位、次に脱落 = 3位、最後に脱落 = 2位）
+    const eliminationOrder = gameState.eliminationOrder;
+    let currentRank = 4;
     
-    // 脱落順の逆順で順位を設定（最後に脱落したプレイヤーから2位、3位、4位）
-    for (let i = eliminationOrder.length - 1; i >= 0; i--) {
-      const playerId = eliminationOrder[i];
-      if (playerId !== gameState.winner?.id) {  // 勝者は既に1位が設定されているのでスキップ
-        ranks.set(playerId, eliminationOrder.length - i + 1);  // 2位から開始
+    eliminationOrder.forEach(playerId => {
+      if (!ranks.has(playerId)) {
+        ranks.set(playerId, currentRank--);
       }
-    }
+    });
 
     return ranks;
   };

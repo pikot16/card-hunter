@@ -63,7 +63,7 @@ const Card: React.FC<CardProps> = ({ card, isHidden, isSelected = false, onClick
           }}
         />
       </div>
-      <div className={`card-index ${isTarget && isSelected ? 'target' : ''}`}>{(index !== undefined) ? index + 1 : ''}</div>
+      <div className={`card-index ${isTarget ? 'target' : ''}`}>{(index !== undefined) ? index + 1 : ''}</div>
     </div>
   );
 };

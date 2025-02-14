@@ -21,6 +21,7 @@ export interface GameLog {
   guessedNumber: number;
   isCorrect: boolean;
   timestamp: number;
+  willContinue?: boolean;
 }
 
 export interface GameState {
