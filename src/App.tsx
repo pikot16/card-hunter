@@ -1270,7 +1270,7 @@ function App() {
               <div key={player.id} className="player-section">
                 <h2 className={`${playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''} ${!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ? 'target-player' : ''}`}>
                   {player.name}
-                  {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー)' : ''}
+                  {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー) ' : ''}
                   {!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
                     (gameState.currentPlayerIndex === 0 && !selectedCard && !showContinueDialog && !showSuitDialog && !showNumberDialog ? 
                       ' (予想対象) - 予想するカードを選んでください' : 
