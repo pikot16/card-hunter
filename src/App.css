@@ -10,10 +10,10 @@
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
-  padding: 10px;
+  padding: 2px;
   text-align: center;
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .game-main {
@@ -181,15 +181,15 @@ h1 {
 .player-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
   justify-content: center;
   margin-top: 2px;
-  padding: 2px;
+  padding: 4px;
 }
 
 .playing-card {
-  width: 60px;
-  height: 90px;
+  width: 70px;
+  height: 105px;
   background-color: #2e7d32;  /* 裏面は深い緑色 */
   border: 4px solid #4CAF50;  /* 4pxに変更 */
   border-radius: 8px;
@@ -303,6 +303,13 @@ h1 {
   font-size: 16px;
 }
 
+.key-hint {
+  font-size: 12px;
+  opacity: 0.7;
+  font-weight: normal;
+  margin-top: 2px;
+}
+
 .guess-dialog {
   position: fixed;
   top: 50%;
@@ -314,6 +321,7 @@ h1 {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
   z-index: 1000;
   cursor: default;
+  outline: none; /* フォーカス時の枠線を消す */
 }
 
 .dialog-header {
@@ -329,6 +337,65 @@ h1 {
   margin: 0;
   color: #2c3e50;
   flex: 1;
+}
+
+.dialog-header .help-icon {
+  font-size: 20px;
+  color: #666;
+  margin-right: 10px;
+  cursor: help;
+  position: relative;
+}
+
+.dialog-header .help-icon:hover .tooltip {
+  display: block;
+}
+
+.tooltip {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 10px;
+  background-color: #333;
+  color: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  width: 280px;
+  font-size: 14px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #333;
+}
+
+.tooltip ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style-type: none;
+}
+
+.tooltip li {
+  margin: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tooltip .key {
+  background-color: #555;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-family: monospace;
 }
 
 .drag-handle {
@@ -420,7 +487,7 @@ h1 {
 }
 
 .game-logs {
-  width: 300px;
+  width: 380px;
   height: calc(100vh - 20px);
   position: sticky;
   top: 10px;
@@ -437,6 +504,7 @@ h1 {
   margin-top: 0;
   margin-bottom: 15px;
   color: #ffffff;
+  font-size: 1.3em;
 }
 
 .logs-container {
@@ -446,12 +514,12 @@ h1 {
 }
 
 .log-item {
-  padding: 10px;
+  padding: 12px;
   margin-bottom: 8px;
   border-radius: 4px;
   background-color: #3d3d3d;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  font-size: 14px;
+  font-size: 16px;
   color: #ffffff;
   line-height: 1.4;
   min-width: 0;
@@ -488,10 +556,12 @@ h1 {
 .suit-button {
   font-size: 24px !important;
   width: 50px;
-  height: 50px;
+  height: 70px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   background-color: white !important;
   border: 2px solid #ccc !important;
   border-radius: 8px;
@@ -544,11 +614,12 @@ h1 {
 
 .log-number {
   display: inline-block;
-  min-width: 24px;
+  min-width: 28px;
   margin-right: 8px;
   font-weight: bold;
   color: #8bc34a;
   flex-shrink: 0;
+  font-size: 17px;
 }
 
 .log-content {
@@ -560,9 +631,13 @@ h1 {
   gap: 4px;
 }
 
+.log-content.continuation-status {
+  color: #8bc34a;
+}
+
 .result-symbol {
   display: inline-block;
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
   margin-left: 8px;
 }
@@ -578,11 +653,12 @@ h1 {
 .player-name {
   display: inline-block;
   background-color: #4a4a4a;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border-radius: 4px;
   margin: 0 4px;
   font-weight: bold;
   color: #8bc34a;
+  font-size: 16px;
 }
 
 .card-symbol {
@@ -591,11 +667,11 @@ h1 {
   justify-content: center;
   background-color: white;
   border-radius: 4px;
-  padding: 2px 6px;
+  padding: 2px 8px;
   margin: 0 4px;
   font-weight: bold;
-  font-size: 14px;
-  min-width: 35px;
+  font-size: 16px;
+  min-width: 40px;
 }
 
 .card-symbol.hearts,

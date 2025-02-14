@@ -27,7 +27,7 @@ function App() {
   };
 
   const [playerName, setPlayerName] = useState<string>('プレイヤー1');
-  const [selectedCard, setSelectedCard] = useState<{playerIndex: number, cardIndex: number} | null>(null);
+  const [selectedCard, setSelectedCard] = useState<{playerIndex: number, cardIndex: number, revealedCardIndex?: number, revealedPlayerIndex?: number} | null>(null);
   const [showSuitDialog, setShowSuitDialog] = useState(false);
   const [showNumberDialog, setShowNumberDialog] = useState(false);
   const [selectedSuit, setSelectedSuit] = useState<CardType['suit'] | null>(null);
@@ -47,6 +47,7 @@ function App() {
   const [showContinueDialog, setShowContinueDialog] = useState(false);
   const [correctGuessPlayers, setCorrectGuessPlayers] = useState<Player[]>([]);
   const [isTestRunning, setIsTestRunning] = useState(false);
+  const [dialogRef, setDialogRef] = useState<HTMLDivElement | null>(null);
 
   // スートの表示用マッピングを追加
   const suitSymbols: { [key: string]: string } = {
@@ -411,7 +412,7 @@ function App() {
     } else {
       // 不正解時も同様に、効果音を先に再生してからダイアログを表示
       playIncorrectSound();
-      alert('不正解... 自分のカードを1枚クリックして表にしてください。\n\n(Enter / Space / OK で閉じる)');
+      alert('不正解... 自分のカードを1枚選んで表にしてください。\n\n(Enter / Space / OK で閉じる)');
       if (currentPlayer.isComputer) {
         // コンピュータの処理は変更なし
         const unrevealedCards = currentPlayer.cards
@@ -442,8 +443,16 @@ function App() {
     setShowNumberDialog(false);
   };
 
-  // 正解後の選択を処理する関数を追加
+  // 正解後の選択を処理する関数を更新
   const handleContinueChoice = (shouldContinue: boolean) => {
+    // 最新のログを更新
+    setGameState(prev => ({
+      ...prev,
+      logs: prev.logs.map((log, index) => 
+        index === prev.logs.length - 1 ? { ...log, willContinue: shouldContinue } : log
+      )
+    }));
+
     if (shouldContinue) {
       // 続けて予想する場合は、ダイアログを閉じるだけ
       setShowContinueDialog(false);
@@ -500,6 +509,10 @@ function App() {
   const startGame = () => {
     if (!playerName) {
       alert('プレイヤー名を入力してください。');
+      return;
+    }
+    if (playerName.length > 10) {
+      alert('プレイヤー名は10文字以内で入力してください。');
       return;
     }
 
@@ -586,6 +599,9 @@ function App() {
       
       if (unrevealedCards.length > 0) {
         const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
+        // 選択したカードを設定
+        setSelectedCard({ playerIndex: nextTargetIndex, cardIndex: randomCard.index });
+
         const guess = computerGuess(gameState, nextPlayer, randomCard.index);
         
         // guessがnullの場合は、まだ公開されていないカードの中からランダムに選択
@@ -616,6 +632,7 @@ function App() {
           } else {
             // 可能なカードがない場合（通常はありえない）
             console.error('No possible cards available for fallback guess');
+            setSelectedCard(null);
             return;
           }
         }
@@ -623,6 +640,7 @@ function App() {
         const finalGuess = guess || fallbackGuess;
         if (!finalGuess) {
           console.error('Both guess and fallback guess are null');
+          setSelectedCard(null);
           return;
         }
 
@@ -643,6 +661,8 @@ function App() {
           finalGuess.suit,
           finalGuess.number,
           isCorrect
+        ).map((log, index, array) => 
+          index === array.length - 1 ? { ...log, willContinue: decideToContinue(currentPlayer, gameState) } : log
         );
 
         if (isCorrect) {
@@ -657,11 +677,20 @@ function App() {
             targetPlayer: nextPlayer.name,
             cardIndex: randomCard.index,
             guessedCard: finalGuess,
-            isCorrect: isCorrect,
-            updatedPlayers: updatedPlayers,
+            isCorrect,
+            updatedPlayers,
             nextPlayerIndex: willContinue ? gameState.currentPlayerIndex : getNextPlayerIndex(gameState.currentPlayerIndex),
-            willContinue: willContinue
+            willContinue
           });
+
+          // ゲーム状態の更新
+          setGameState(prev => ({
+            ...prev,
+            logs: updatedLogs.map((log, index) => 
+              index === updatedLogs.length - 1 ? { ...log, willContinue } : log
+            )
+          }));
+
           setShowComputerActionDialog(true);
         } else {
           const unrevealedOwnCards = currentPlayer.cards
@@ -671,6 +700,13 @@ function App() {
           if (unrevealedOwnCards.length > 0) {
             const randomOwnCard = unrevealedOwnCards[Math.floor(Math.random() * unrevealedOwnCards.length)];
             updatedPlayers[gameState.currentPlayerIndex].cards[randomOwnCard.index].isRevealed = true;
+            // 選択したカードと表にするカードの両方を設定
+            setSelectedCard({
+              playerIndex: nextTargetIndex,
+              cardIndex: randomCard.index,
+              revealedCardIndex: randomOwnCard.index,
+              revealedPlayerIndex: gameState.currentPlayerIndex
+            });
           }
           
           // 不正解の場合は必ず次のプレイヤーに移動
@@ -679,8 +715,8 @@ function App() {
             targetPlayer: nextPlayer.name,
             cardIndex: randomCard.index,
             guessedCard: finalGuess,
-            isCorrect: isCorrect,
-            updatedPlayers: updatedPlayers,
+            isCorrect,
+            updatedPlayers,
             nextPlayerIndex: getNextPlayerIndex(gameState.currentPlayerIndex),
             willContinue: false
           });
@@ -711,7 +747,10 @@ function App() {
   // ゲームログを表示するコンポーネントを更新
   const GameLogs = () => (
     <div className="game-logs">
-      <h3>ゲーム履歴</h3>
+      <h3>
+        ゲーム履歴
+        {showComputerActionDialog && ' (Space / Enter で次へ)'}
+      </h3>
       <div className="logs-container">
         {gameState.logs.slice().reverse().map((log, index) => (
           <div key={log.timestamp} className={`log-item ${log.isCorrect ? 'correct' : 'incorrect'}`}>
@@ -724,6 +763,13 @@ function App() {
               {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
               <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
             </div>
+            {log.isCorrect && log.willContinue !== undefined && (
+              <div className="log-content continuation-status">
+                {gameState.gameStatus === 'finished' && 
+                 index === 0 ? '→ ゲーム終了' : 
+                 log.willContinue ? '→ 続けて予想' : '→ 次のプレイヤーに交代'}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -741,62 +787,24 @@ function App() {
         currentPlayerIndex: computerAction.nextPlayerIndex
       }));
       setShowComputerActionDialog(false);
+      setSelectedCard(null);  // 選択状態をリセット
+      setSelectedCard(null);
       checkGameEnd(computerAction.updatedPlayers);
     };
 
-    // キーボードイベントのハンドラーを追加
     useEffect(() => {
       const handleKeyPress = (e: KeyboardEvent) => {
-        // スペースキー、エンターキー、右矢印キーで次へ進む
-        if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') {
-          e.preventDefault();  // デフォルトの動作を防ぐ
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
           handleContinue();
         }
       };
 
-      // イベントリスナーを追加
       window.addEventListener('keydown', handleKeyPress);
+      return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [computerAction]);
 
-      // クリーンアップ関数
-      return () => {
-        window.removeEventListener('keydown', handleKeyPress);
-      };
-    }, [computerAction]);  // computerActionが変更されたときにリスナーを更新
-
-    return (
-      <Draggable handle=".dialog-header">
-        <div className="guess-dialog computer-action-dialog">
-          <div className="dialog-header">
-            <h3>コンピューターの行動</h3>
-            <div className="drag-handle">⋮⋮</div>
-          </div>
-          <div className="computer-action-content">
-            <div className="action-description">
-              <span className="player-name">{computerAction.player}</span>が
-              <span className="player-name">{computerAction.targetPlayer}</span>の
-              {computerAction.cardIndex + 1}枚目のカードを
-            </div>
-            <div className="action-guess">
-              {getDisplayCard(computerAction.guessedCard.suit, computerAction.guessedCard.number)}と予想
-              <span className="result-symbol">{computerAction.isCorrect ? '○' : '×'}</span>
-            </div>
-            {computerAction.isCorrect && (
-              <div className="computer-decision">
-                <span className="decision-text">
-                  {computerAction.willContinue ? '続けて予想します' : '次のプレイヤーに回します'}
-                </span>
-              </div>
-            )}
-          </div>
-          <button 
-            className="action-continue-button"
-            onClick={handleContinue}
-          >
-            次へ進む (Space / Enter / →)
-          </button>
-        </div>
-      </Draggable>
-    );
+    return null;
   };
 
   // プレイヤーの統計情報を計算する関数を追加
@@ -937,89 +945,128 @@ function App() {
   );
 
   // handleComputerTurnの修正
-  const handleComputerTurn = async () => {
-    const currentPlayer = gameState.players[gameState.currentPlayerIndex];
-    if (!currentPlayer.isComputer) return;
-
-    // 予想対象のプレイヤーとカードを選択
+  const handleComputerTurn = () => {
     const targetPlayerIndex = getNextTargetPlayerIndex(gameState.currentPlayerIndex);
-    const targetPlayer = gameState.players[targetPlayerIndex];
-    
-    // 予想可能なカードを探す
-    const possibleCards = targetPlayer.cards
+    const possibleCards = gameState.players[targetPlayerIndex].cards
       .map((card, index) => ({ card, index }))
-      .filter(item => !item.card.isRevealed);
+      .filter((item) => !item.card.isRevealed);
 
-    if (possibleCards.length === 0) return;
+    if (possibleCards.length > 0) {
+      const targetCardInfo = possibleCards[Math.floor(Math.random() * possibleCards.length)];
+      setSelectedCard({ playerIndex: targetPlayerIndex, cardIndex: targetCardInfo.index });
 
-    // ランダムにカードを選択
-    const targetCardInfo = possibleCards[Math.floor(Math.random() * possibleCards.length)];
-    const guess = computerGuess(gameState, targetPlayer, targetCardInfo.index);
+      const guess = computerGuess(
+        gameState,
+        gameState.players[targetPlayerIndex],
+        targetCardInfo.index
+      );
 
-    if (!guess) return;
-
-    // 予想の結果を確認
-    const isCorrect = targetPlayer.cards[targetCardInfo.index].suit === guess.suit &&
-                     targetPlayer.cards[targetCardInfo.index].number === guess.number;
-
-    // 効果音を再生
-    if (isCorrect) {
-      playCorrectSound();
-    } else {
-      playIncorrectSound();
-    }
-
-    // 以下、既存のコード
-    const updatedPlayers = [...gameState.players];
-    
-    if (isCorrect) {
-      updatedPlayers[targetPlayerIndex].cards[targetCardInfo.index].isRevealed = true;
-    } else {
-      // 不正解の場合、自分のカードをランダムに1枚表にする
-      const unrevealedCards = currentPlayer.cards
-        .map((card, index) => ({ card, index }))
-        .filter(item => !item.card.isRevealed);
-
-      if (unrevealedCards.length > 0) {
-        const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
-        updatedPlayers[gameState.currentPlayerIndex].cards[randomCard.index].isRevealed = true;
+      if (!guess) {
+        setSelectedCard(null);
+        return;
       }
-    }
 
-    // ゲーム状態を更新
-    setGameState(prev => ({
-      ...prev,
-      players: updatedPlayers,
-      currentPlayerIndex: isCorrect ? prev.currentPlayerIndex : getNextPlayerIndex(prev.currentPlayerIndex),
-      logs: [
-        ...prev.logs,
-        {
-          guessingPlayer: currentPlayer.name,
-          targetPlayer: targetPlayer.name,
-          cardIndex: targetCardInfo.index,
-          guessedSuit: guess.suit,
-          guessedNumber: guess.number,
-          isCorrect,
-          timestamp: Date.now()
+      const isCorrect = gameState.players[targetPlayerIndex].cards[targetCardInfo.index].suit === guess.suit &&
+                       gameState.players[targetPlayerIndex].cards[targetCardInfo.index].number === guess.number;
+
+      if (isCorrect) {
+        playCorrectSound();
+      } else {
+        playIncorrectSound();
+      }
+
+      const updatedPlayers = [...gameState.players];
+      if (isCorrect) {
+        updatedPlayers[targetPlayerIndex].cards[targetCardInfo.index].isRevealed = true;
+      } else {
+        const unrevealedCards = gameState.players[gameState.currentPlayerIndex].cards
+          .map((card, index) => ({ card, index }))
+          .filter(item => !item.card.isRevealed);
+
+        if (unrevealedCards.length > 0) {
+          const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
+          updatedPlayers[gameState.currentPlayerIndex].cards[randomCard.index].isRevealed = true;
         }
-      ]
-    }));
+      }
 
-    // コンピューターのアクション情報を設定
-    setComputerAction({
-      player: currentPlayer.name,
-      targetPlayer: targetPlayer.name,
-      cardIndex: targetCardInfo.index,
-      guessedCard: { suit: guess.suit, number: guess.number },
-      isCorrect,
-      updatedPlayers,
-      nextPlayerIndex: isCorrect ? gameState.currentPlayerIndex : getNextPlayerIndex(gameState.currentPlayerIndex),
-      willContinue: isCorrect
-    });
+      setGameState(prev => ({
+        ...prev,
+        players: updatedPlayers,
+        currentPlayerIndex: isCorrect ? prev.currentPlayerIndex : getNextPlayerIndex(prev.currentPlayerIndex),
+        logs: [
+          ...prev.logs,
+          {
+            guessingPlayer: gameState.players[gameState.currentPlayerIndex].name,
+            targetPlayer: gameState.players[targetPlayerIndex].name,
+            cardIndex: targetCardInfo.index,
+            guessedSuit: guess.suit,
+            guessedNumber: guess.number,
+            isCorrect,
+            timestamp: Date.now()
+          }
+        ]
+      }));
 
-    // コンピューターのアクションダイアログを表示
-    setShowComputerActionDialog(true);
+      setComputerAction({
+        player: gameState.players[gameState.currentPlayerIndex].name,
+        targetPlayer: gameState.players[targetPlayerIndex].name,
+        cardIndex: targetCardInfo.index,
+        guessedCard: { suit: guess.suit, number: guess.number },
+        isCorrect,
+        updatedPlayers,
+        nextPlayerIndex: isCorrect ? gameState.currentPlayerIndex : getNextPlayerIndex(gameState.currentPlayerIndex),
+        willContinue: isCorrect
+      });
+
+      setShowComputerActionDialog(true);
+    }
   };
+
+  // ダイアログが表示された時にフォーカスを設定
+  useEffect(() => {
+    if (showSuitDialog && dialogRef) {
+      dialogRef.focus();
+    }
+  }, [showSuitDialog, dialogRef]);
+
+  // キーボードイベントハンドラーを追加
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showSuitDialog) {
+        // スートのショートカット
+        if (e.key.toLowerCase() === 'h') {
+          handleSuitSelect('hearts');
+        } else if (e.key.toLowerCase() === 'd') {
+          handleSuitSelect('diamonds');
+        } else if (e.key.toLowerCase() === 'c') {
+          handleSuitSelect('clubs');
+        } else if (e.key.toLowerCase() === 's') {
+          handleSuitSelect('spades');
+        } else if (e.key === 'Escape') {
+          handleCancelSelection();
+        }
+      } else if (showNumberDialog) {
+        const numberMap: { [key: string]: number } = {
+          'a': 1, '1': 1,
+          '2': 2, '3': 3, '4': 4, '5': 5,
+          '6': 6, '7': 7, '8': 8, '9': 9,
+          '0': 10,
+          'j': 11, 'q': 12, 'k': 13
+        };
+        
+        if (e.key.toLowerCase() in numberMap) {
+          handleGuess(numberMap[e.key.toLowerCase()]);
+        } else if (e.key === 'Escape') {
+          handleCancelSelection();
+        } else if (e.key === 'Backspace') {
+          handleBackToSuit();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSuitDialog, showNumberDialog, selectedSuit]);
 
   return (
     <div className="game-container">
@@ -1058,13 +1105,20 @@ function App() {
             </div>
 
             <div className="player-input">
-              <label htmlFor="player-name">あなたの名前</label>
+              <label htmlFor="player-name">あなたの名前 (10文字以内)</label>
               <input
                 id="player-name"
                 type="text"
                 value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                onChange={(e) => {
+                  // 10文字以内に制限
+                  if (e.target.value.length <= 10) {
+                    setPlayerName(e.target.value);
+                  }
+                }}
                 onKeyPress={handleKeyPress}
+                maxLength={10}
+                placeholder="10文字以内で入力"
               />
             </div>
             
@@ -1140,7 +1194,12 @@ function App() {
                             key={cardIndex}
                             card={card}
                             isHidden={false}
-                            isSelected={false}
+                            isSelected={
+                              selectedCard?.playerIndex === playerIndex &&
+                              selectedCard?.cardIndex === cardIndex ||
+                              (selectedCard?.revealedPlayerIndex === playerIndex &&
+                               selectedCard?.revealedCardIndex === cardIndex)
+                            }
                             onClick={() => {}}
                             index={cardIndex}
                           />
@@ -1165,6 +1224,13 @@ function App() {
                         {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
                         <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
                       </div>
+                      {log.isCorrect && log.willContinue !== undefined && (
+                        <div className="log-content continuation-status">
+                          {gameState.gameStatus === 'finished' && 
+                           index === 0 ? '→ ゲーム終了' : 
+                           log.willContinue ? '→ 続けて予想' : '→ 次のプレイヤーに交代'}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1194,11 +1260,18 @@ function App() {
                       isHidden={playerIndex !== 0 && !card.isRevealed}
                       isSelected={
                         selectedCard?.playerIndex === playerIndex &&
-                        selectedCard?.cardIndex === cardIndex
+                        selectedCard?.cardIndex === cardIndex ||
+                        (selectedCard?.revealedPlayerIndex === playerIndex &&
+                         selectedCard?.revealedCardIndex === cardIndex)
                       }
                       onClick={() => handleCardSelect(playerIndex, cardIndex)}
                       index={cardIndex}
-                      isTarget={!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex)}
+                      isTarget={
+                        selectedCard?.playerIndex === playerIndex &&
+                        selectedCard?.cardIndex === cardIndex &&
+                        (playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ||
+                        showComputerActionDialog)
+                      }
                     />
                   ))}
                 </div>
@@ -1211,24 +1284,35 @@ function App() {
                 position={dialogPosition}
                 onStop={handleDragStop}
               >
-                <div className="guess-dialog">
+                <div 
+                  className="guess-dialog" 
+                  tabIndex={-1}
+                  ref={setDialogRef}
+                  style={{ outline: 'none' }}
+                >
                   <div className="dialog-header">
                     <h3>カードのスートを予想してください</h3>
                     <div className="drag-handle">⋮⋮</div>
                   </div>
                   <div className="guess-buttons">
-                    {['hearts', 'diamonds', 'clubs', 'spades'].map((suit) => (
+                    {[
+                      { suit: 'hearts', key: 'H', label: '♥' },
+                      { suit: 'diamonds', key: 'D', label: '♦' },
+                      { suit: 'clubs', key: 'C', label: '♣' },
+                      { suit: 'spades', key: 'S', label: '♠' }
+                    ].map(({ suit, key, label }) => (
                       <button
                         key={suit}
                         onClick={() => handleSuitSelect(suit as CardType['suit'])}
                         className={`suit-button ${suit}`}
                       >
-                        {suitSymbols[suit]}
+                        {label}
+                        <span className="key-hint">({key})</span>
                       </button>
                     ))}
                   </div>
                   <button className="cancel-button" onClick={handleCancelSelection}>
-                    キャンセル
+                    キャンセル (Esc)
                   </button>
                 </div>
               </Draggable>
@@ -1240,9 +1324,29 @@ function App() {
                 position={dialogPosition}
                 onStop={handleDragStop}
               >
-                <div className="guess-dialog">
+                <div 
+                  className="guess-dialog"
+                  tabIndex={-1}
+                  ref={setDialogRef}
+                  style={{ outline: 'none' }}
+                >
                   <div className="dialog-header">
                     <h3>カードの数字を予想してください</h3>
+                    <div className="help-icon">
+                      ℹ️
+                      <div className="tooltip">
+                        <ul>
+                          <li>A <span className="key">A</span> or <span className="key">1</span></li>
+                          <li>2-9 <span className="key">2</span>-<span className="key">9</span></li>
+                          <li>10 <span className="key">0</span></li>
+                          <li>J <span className="key">J</span></li>
+                          <li>Q <span className="key">Q</span></li>
+                          <li>K <span className="key">K</span></li>
+                          <li>戻る <span className="key">Backspace</span></li>
+                          <li>キャンセル <span className="key">Esc</span></li>
+                        </ul>
+                      </div>
+                    </div>
                     <div className="drag-handle">⋮⋮</div>
                   </div>
                   <div className="selected-suit">
@@ -1266,10 +1370,10 @@ function App() {
                   </div>
                   <div className="dialog-buttons">
                     <button className="back-button" onClick={handleBackToSuit}>
-                      戻る
+                      戻る (Backspace)
                     </button>
                     <button className="cancel-button" onClick={handleCancelSelection}>
-                      キャンセル
+                      キャンセル (Esc)
                     </button>
                   </div>
                 </div>
