@@ -5,12 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run tsc && npm run vite-build",
-    "vite-build": "vite build",
-    "tsc": "tsc",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "test:ai": "tsc -p tsconfig.test.json && node dist-test/utils/runAITest.js"
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.3.1",
