@@ -881,7 +881,7 @@ function App() {
           {player.isComputer && (
             <span className="computer-info">
               ({getSkillLevelJP(player.skillLevel)} / {getPersonalityTypeJP(player.personalityType)})
-            </span>
+          </span>
           )}
         </h3>
         <div className="stats-item">
@@ -1277,7 +1277,7 @@ function App() {
                       ' (予想対象)'
                     )}
                   {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
-                    <span className="incorrect-message">不正解... 表にするカードを選んでください</span>}
+                    <span className="incorrect-message"> - 不正解... 表にするカードを選んでください</span>}
                 </h2>
                 <div className="player-cards">
                   {player.cards.map((card, cardIndex) => (
