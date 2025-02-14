@@ -23,7 +23,33 @@ export const shuffleCards = (cards: Card[]): Card[] => {
   return deck;
 };
 
-// コンピュータープレイヤーのカード予想
-export const computerGuess = (gameState: GameState, targetPlayer: Player, cardIndex: number): { suit: Card['suit'], number: number } | null => {
-  return makeStrategicGuess(gameState, targetPlayer, cardIndex);
+// コンピュータの予想ロジック
+export const computerGuess = (gameState: GameState, targetPlayer: Player, targetCardIndex: number): { suit: Card['suit']; number: number } | null => {
+  // 全プレイヤーの公開済みカードを収集
+  const revealedCards = gameState.players.flatMap(player => 
+    player.cards
+      .filter(card => card.isRevealed)
+      .map(card => ({ suit: card.suit, number: card.number }))
+  );
+
+  // まだ公開されていないカードの組み合わせを生成
+  const possibleCards: Array<{ suit: Card['suit']; number: number }> = [];
+  const suits: Array<Card['suit']> = ['hearts', 'diamonds', 'clubs', 'spades'];
+  
+  for (let number = 1; number <= 13; number++) {
+    for (const suit of suits) {
+      // 既に公開されているカードは除外
+      if (!revealedCards.some(card => card.suit === suit && card.number === number)) {
+        possibleCards.push({ suit, number });
+      }
+    }
+  }
+
+  // 可能なカードがある場合はランダムに1つ選択
+  if (possibleCards.length > 0) {
+    return possibleCards[Math.floor(Math.random() * possibleCards.length)];
+  }
+
+  // 可能なカードがない場合（通常はありえない）
+  return null;
 }; 
