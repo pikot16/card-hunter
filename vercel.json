@@ -1,10 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/node"
-    }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
   ],
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
