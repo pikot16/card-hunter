@@ -7,6 +7,14 @@ export default defineConfig({
   build: {
     sourcemap: true,
     outDir: 'dist',
+    minify: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+        }
+      }
+    }
   },
   optimizeDeps: {
     esbuildOptions: {
