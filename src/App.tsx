@@ -412,7 +412,6 @@ function App() {
     } else {
       // 不正解時も同様に、効果音を先に再生してからダイアログを表示
       playIncorrectSound();
-      alert('不正解... 自分のカードを1枚選んで表にしてください。\n\n(Enter / Space / OK で閉じる)');
       if (currentPlayer.isComputer) {
         // コンピュータの処理は変更なし
         const unrevealedCards = currentPlayer.cards
@@ -1094,28 +1093,41 @@ function App() {
               <h2>ゲームのルール</h2>
               <div className="rules-content">
                 <h3>ゲームの目的</h3>
-                <p>最後まで自分のカードを守り抜いた人が勝者となります！</p>
+                <p>自分のカードを守り抜き、最後まで残ったプレイヤーが勝者となります！</p>
                 
-                <h3>基本ルール</h3>
+                <h3>ゲームの進め方</h3>
                 <ol>
-                  <li>各プレイヤーは13枚のカードを持ちます（数字順に並びます）</li>
-                  <li>順番に他のプレイヤーのカードを予想していきます</li>
+                  <li>各プレイヤーは13枚のトランプカードを配られます（Jokerは無し）
+                    <ul>
+                      <li>カードは数字順に並んでいます</li>
+                      <li>自分のカードは見ることができますが、他のプレイヤーのカードは裏向きです</li>
+                    </ul>
+                  </li>
+                  <li>プレイヤー1から順番に次のプレイヤーのカードを予想します
+                    <ul>
+                      <li>予想するカードを選び、そのカードの「スート（マーク）」と「数字」の両方を当てます</li>
+                      <li>例：6番目のカードを「ハート（♥）の7」と予想</li>
+                    </ul>
+                  </li>
                   <li>予想が当たった場合：
                     <ul>
-                      <li>相手のカードが表向きになります</li>
-                      <li>続けて次の予想ができます</li>
+                      <li>予想した相手のカードが表向きになります</li>
+                      <li>続けて相手のカードを予想するか、次のプレイヤーにターンを回すかを選択できます</li>
                     </ul>
                   </li>
                   <li>予想が外れた場合：
                     <ul>
-                      <li>自分のカードを1枚表向きにしなければなりません</li>
-                      <li>次のプレイヤーの番になります</li>
+                      <li>裏になっている自分のカードから1枚選んで表向きにしなければなりません</li>
+                      <li>その後、次のプレイヤーのターンになります</li>
                     </ul>
                   </li>
                 </ol>
 
-                <h3>ゲーム終了</h3>
-                <p>最後まで裏向きのカードを持っているプレイヤーが勝利します！</p>
+                <h3>ゲーム終了と順位</h3>
+                <ul>
+                  <li>全てのカードが表向きになったプレイヤーから順に脱落となります</li>
+                  <li>最後まで裏向きのカードを持っているプレイヤーが1位となります</li>
+                </ul>
               </div>
             </div>
 
@@ -1260,12 +1272,12 @@ function App() {
                   {player.name}
                   {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー)' : ''}
                   {!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
-                    (gameState.currentPlayerIndex === 0 && !selectedCard ? 
+                    (gameState.currentPlayerIndex === 0 && !selectedCard && !showContinueDialog && !showSuitDialog && !showNumberDialog ? 
                       ' (予想対象) - 予想するカードを選んでください' : 
                       ' (予想対象)'
                     )}
                   {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
-                    ' - 表にするカードを選んでください'}
+                    <span className="incorrect-message">不正解... 表にするカードを選んでください</span>}
                 </h2>
                 <div className="player-cards">
                   {player.cards.map((card, cardIndex) => (
