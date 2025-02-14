@@ -1,6 +1,7 @@
 {
   "framework": "vite",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm install && npm run build",
+  "installCommand": "npm install",
   "outputDirectory": "dist",
   "routes": [
     { "handle": "filesystem" },
