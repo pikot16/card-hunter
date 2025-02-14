@@ -25,6 +25,13 @@ export const shuffleCards = (cards: Card[]): Card[] => {
 
 // コンピュータの予想ロジック
 export const computerGuess = (gameState: GameState, targetPlayer: Player, targetCardIndex: number): { suit: Card['suit']; number: number } | null => {
+  // makeStrategicGuessを使用して予想を行う
+  const strategicGuess = makeStrategicGuess(gameState, targetPlayer, targetCardIndex);
+  if (strategicGuess) {
+    return strategicGuess;
+  }
+
+  // makeStrategicGuessが失敗した場合のフォールバック
   // 全プレイヤーの公開済みカードを収集
   const revealedCards = gameState.players.flatMap(player => 
     player.cards
@@ -50,6 +57,5 @@ export const computerGuess = (gameState: GameState, targetPlayer: Player, target
     return possibleCards[Math.floor(Math.random() * possibleCards.length)];
   }
 
-  // 可能なカードがない場合（通常はありえない）
   return null;
 }; 

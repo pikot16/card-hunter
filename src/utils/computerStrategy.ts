@@ -130,7 +130,7 @@ const calculateSequentialProbability = (
   return probability;
 };
 
-// カードの初期分配確率を考慮した確率調整を行う関数を追加
+// カードの分配確率を考慮した確率調整を行う関数を追加
 const calculateDistributionProbability = (
   number: number,
   suit: Card['suit'],
@@ -139,45 +139,57 @@ const calculateDistributionProbability = (
   allPlayers: Player[]
 ): number => {
   let probability = 1.0;
+  console.log(`\n=== 確率計算開始: ${cardIndex + 1}番目のカード, 数字${number}, スート${suit} ===`);
 
   // 同じ数字のカードの出現状況を確認
   const sameNumberCount = allPlayers.reduce((count, p) => 
     count + p.cards.filter(c => c.isRevealed && c.number === number).length,
     0
   );
+  console.log(`同じ数字(${number})の出現回数: ${sameNumberCount}`);
 
   // 同じ数字が既に多く出ている場合は確率を下げる
   if (sameNumberCount > 0) {
-    probability *= Math.pow(0.5, sameNumberCount); // より厳しく抑制（0.7→0.5）
+    probability *= Math.pow(0.5, sameNumberCount);
+    console.log(`同じ数字による確率調整: ${probability.toFixed(4)}`);
   }
 
   // カードの位置に基づく確率計算を厳密化
   const totalCards = player.cards.length; // 通常は13
   const position = cardIndex + 1; // 1-indexed
+  console.log(`カード位置: ${position}番目`);
 
   // 理論的な位置に基づく確率計算
   const expectedPosition = ((number - 1) * totalCards / 13) + 1;
   const positionDiff = Math.abs(position - expectedPosition);
-  
+  console.log(`理想的な位置: ${expectedPosition.toFixed(1)}番目`);
+  console.log(`位置の差: ${positionDiff.toFixed(1)}`);
+
   // 位置の差が大きいほど確率を大きく下げる
-  // 例：差が5以上ある場合は確率を0.01以下に
+  let originalProbability = probability;
   if (positionDiff >= 5) {
     probability *= 0.01;
+    console.log(`位置の差が5以上 → 確率を99%下げる: ${originalProbability.toFixed(4)} → ${probability.toFixed(4)}`);
   } else if (positionDiff >= 3) {
     probability *= 0.1;
+    console.log(`位置の差が3-4 → 確率を90%下げる: ${originalProbability.toFixed(4)} → ${probability.toFixed(4)}`);
   } else if (positionDiff >= 2) {
     probability *= 0.3;
+    console.log(`位置の差が2 → 確率を70%下げる: ${originalProbability.toFixed(4)} → ${probability.toFixed(4)}`);
   } else if (positionDiff >= 1) {
     probability *= 0.7;
+    console.log(`位置の差が1 → 確率を30%下げる: ${originalProbability.toFixed(4)} → ${probability.toFixed(4)}`);
   }
 
   // 極端な位置の場合の追加ペナルティ
-  // 例：2がラスト付近にある、Kが最初の方にあるなど
+  originalProbability = probability;
   if ((number <= 3 && position >= totalCards - 2) || 
       (number >= 11 && position <= 2)) {
     probability *= 0.01;
+    console.log(`極端な位置による追加ペナルティ: ${originalProbability.toFixed(4)} → ${probability.toFixed(4)}`);
   }
 
+  console.log(`=== 最終確率: ${probability.toFixed(4)} ===\n`);
   return probability;
 };
 
@@ -345,6 +357,10 @@ export const makeStrategicGuess = (
   cardIndex: number
 ): { suit: Card['suit'], number: number } | null => {
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+  console.log(`\n=== コンピュータの予想開始 ===`);
+  console.log(`予想プレイヤー: ${currentPlayer.name} (${currentPlayer.skillLevel})`);
+  console.log(`対象プレイヤー: ${targetPlayer.name}`);
+  console.log(`対象カード: ${cardIndex + 1}番目`);
   
   try {
     const probabilities = calculateCardProbabilities(
@@ -354,9 +370,23 @@ export const makeStrategicGuess = (
       currentPlayer.skillLevel
     );
     
-    if (probabilities.length === 0) return null;
+    if (probabilities.length === 0) {
+      console.log('有効な予想候補がありません');
+      return null;
+    }
+
+    // 確率でソートして上位5つを表示
+    const topProbabilities = [...probabilities]
+      .sort((a, b) => b.probability - a.probability)
+      .slice(0, 5);
+    
+    console.log('\n=== 上位5つの予想候補 ===');
+    topProbabilities.forEach((p, i) => {
+      console.log(`${i + 1}. ${p.suit} ${p.number}: ${(p.probability * 100).toFixed(2)}%`);
+    });
 
     const guess = selectBestGuess(probabilities, currentPlayer.skillLevel);
+    console.log(`\n最終予想: ${guess.suit} ${guess.number}\n`);
     
     // 予想を記録
     recordGuess(
