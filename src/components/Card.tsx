@@ -8,9 +8,10 @@ interface CardProps {
   isSelected?: boolean;
   onClick: () => void;
   index?: number;
+  isTarget?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({ card, isHidden, isSelected = false, onClick, index }) => {
+const Card: React.FC<CardProps> = ({ card, isHidden, isSelected = false, onClick, index, isTarget = false }) => {
   const getCardImage = () => {
     if (!card.isRevealed && isHidden) {
       return '/images/cards/back.png';
@@ -62,7 +63,7 @@ const Card: React.FC<CardProps> = ({ card, isHidden, isSelected = false, onClick
           }}
         />
       </div>
-      <div className="card-index">{(index !== undefined) ? index + 1 : ''}</div>
+      <div className={`card-index ${isTarget && isSelected ? 'target' : ''}`}>{(index !== undefined) ? index + 1 : ''}</div>
     </div>
   );
 };

@@ -23,7 +23,8 @@
 
 h1 {
   color: #ffffff;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
+  font-size: 24px;
 }
 
 .setup-container {
@@ -89,11 +90,24 @@ h1 {
 
 .player-input {
   margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-input label {
+  color: #8bc34a;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 1.8em;
+  display: block;
+  width: 100%;
 }
 
 .player-input input {
   padding: 8px 12px;
-  margin-right: 10px;
+  width: 200px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
@@ -167,10 +181,10 @@ h1 {
 .player-cards {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
   justify-content: center;
-  margin-top: 5px;
-  padding: 5px;
+  margin-top: 2px;
+  padding: 2px;
 }
 
 .playing-card {
@@ -237,8 +251,8 @@ h1 {
 }
 
 .player-section {
-  margin-bottom: 8px;
-  padding: 8px;
+  margin-bottom: 4px;
+  padding: 4px;
   background-color: #2e7d32;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -246,20 +260,21 @@ h1 {
 
 .player-section h2 {
   color: #ffffff;
-  margin-bottom: 5px;
-  font-size: 1.1em;
+  margin: 1px 0;
+  font-size: 0.9em;
   opacity: 0.7;
   transition: all 0.3s ease;
 }
 
-.player-section .current-player {
+.player-section .current-player,
+.player-section h2.target-player {
   color: #ffffff;
   opacity: 1;
-  font-size: 1.2em;
+  font-size: 1.1em;
   font-weight: bold;
   text-shadow: 0 0 10px rgba(139, 195, 74, 0.5);
   background-color: rgba(139, 195, 74, 0.2);
-  padding: 4px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
   border-left: 4px solid #8bc34a;
 }
@@ -272,10 +287,20 @@ h1 {
 }
 
 .card-index {
-  font-size: 12px;
+  font-size: 14px;
   color: #ffffff;
   opacity: 0.8;
   user-select: none;
+}
+
+/* 予想対象のカードの番号用のスタイルを追加 */
+.card-index.target {
+  color: #ffffff;
+  font-weight: bold;
+  opacity: 1;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.8),
+               0 0 12px rgba(255, 255, 255, 0.6);
+  font-size: 16px;
 }
 
 .guess-dialog {
@@ -810,15 +835,23 @@ h1 {
 .computer-decision {
   margin-top: 15px;
   padding: 10px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
   text-align: center;
+  color: #ffffff;
 }
 
 .decision-text {
   font-size: 16px;
-  color: #8bc34a;
+  color: #ffffff;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.decision-text::before {
+  content: "ℹ️";  /* 情報アイコンを追加 */
+  font-size: 18px;
 }
 
 .computer-settings {
