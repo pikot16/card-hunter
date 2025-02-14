@@ -833,25 +833,16 @@ function App() {
       ranks.set(gameState.winner.id, 1);
     }
     
-    // 脱落順を逆順にして順位を設定（最後に脱落 = 2位、最初に脱落 = 4位）
+    // 脱落順から順位を設定（最後に脱落 = 2位、最初に脱落 = 4位）
     const eliminationOrder = [...gameState.eliminationOrder];
-    const reversedElimination = eliminationOrder.reverse();
     
-    // 脱落順の逆順で順位を設定
-    reversedElimination.forEach((playerId, index) => {
+    // 脱落順の逆順で順位を設定（最後に脱落したプレイヤーから2位、3位、4位）
+    for (let i = eliminationOrder.length - 1; i >= 0; i--) {
+      const playerId = eliminationOrder[i];
       if (playerId !== gameState.winner?.id) {  // 勝者は既に1位が設定されているのでスキップ
-        ranks.set(playerId, index + 2);  // 2位から開始
+        ranks.set(playerId, eliminationOrder.length - i + 1);  // 2位から開始
       }
-    });
-
-    // デバッグ用のログ出力
-    console.log('Winner:', gameState.winner?.name);
-    console.log('Elimination Order:', gameState.eliminationOrder.map(id => 
-      gameState.players.find(p => p.id === id)?.name
-    ));
-    console.log('Ranks:', Array.from(ranks.entries()).map(([id, rank]) => 
-      `${gameState.players.find(p => p.id === id)?.name}: ${rank}位`
-    ));
+    }
 
     return ranks;
   };
@@ -861,14 +852,38 @@ function App() {
     const stats = calculatePlayerStats(player.name);
     const ranks = calculatePlayerRanks();
     const rank = ranks.get(player.id);
+
+    // コンピューターの強さと性格タイプを日本語に変換
+    const getSkillLevelJP = (level?: string) => {
+      switch (level) {
+        case 'beginner': return '初級';
+        case 'intermediate': return '中級';
+        case 'expert': return '上級';
+        default: return '';
+      }
+    };
+
+    const getPersonalityTypeJP = (type?: string) => {
+      switch (type) {
+        case 'aggressive': return '積極的';
+        case 'balanced': return 'バランス型';
+        case 'cautious': return '慎重';
+        default: return '';
+      }
+    };
     
     return (
       <div className="player-stats">
+        <div className={`player-rank ${rank === 1 ? 'first' : ''}`}>
+          {rank}位{rank === 1 && ' 👑'}
+        </div>
         <h3>
           {player.name}
-          <span className={`player-rank ${rank === 1 ? 'first' : ''}`}>
-            {rank}位{rank === 1 && ' 👑'}
-          </span>
+          {player.isComputer && (
+            <span className="computer-info">
+              ({getSkillLevelJP(player.skillLevel)} / {getPersonalityTypeJP(player.personalityType)})
+            </span>
+          )}
         </h3>
         <div className="stats-item">
           <span className="stats-label">予想回数:</span>
