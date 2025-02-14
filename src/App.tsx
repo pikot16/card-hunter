@@ -354,37 +354,34 @@ function App() {
     const updatedPlayers = [...gameState.players];
     const isCorrect = targetCard.number === guessedNumber && targetCard.suit === selectedSuit;
 
-    // ログを追加
-    const updatedLogs = addLog(
-      updatedPlayers,
-      selectedCard.cardIndex,
-      selectedSuit,
-      guessedNumber,
-      isCorrect
-    );
+    // ログを追加（正解時は willContinue を設定しない）
+    const updatedLogs = [...gameState.logs, {
+      guessingPlayer: currentPlayer.name,
+      targetPlayer: targetPlayer.name,
+      cardIndex: selectedCard.cardIndex,
+      guessedSuit: selectedSuit,
+      guessedNumber: guessedNumber,
+      isCorrect: isCorrect,
+      timestamp: Date.now()
+    }];
 
     if (isCorrect) {
       updatedPlayers[selectedCard.playerIndex].cards[selectedCard.cardIndex].isRevealed = true;
       
-      // まず効果音を再生し、その直後にダイアログを表示
       playCorrectSound();
       
-      // 対象プレイヤーの全カードが表になったかチェック
       const targetPlayerAllRevealed = updatedPlayers[selectedCard.playerIndex].cards.every(card => card.isRevealed);
       
-      // 生存プレイヤー数をカウント
       const survivingPlayers = updatedPlayers.filter(player => 
         !player.cards.every(card => card.isRevealed)
       );
 
       if (targetPlayerAllRevealed) {
-        // 脱落順を更新
         const updatedEliminationOrder = [...gameState.eliminationOrder];
         if (!updatedEliminationOrder.includes(targetPlayer.id)) {
           updatedEliminationOrder.push(targetPlayer.id);
         }
 
-        // 生存プレイヤーが1人（自分だけ）になった場合はゲーム終了
         if (survivingPlayers.length === 1) {
           setGameState(prev => ({
             ...prev,
@@ -398,9 +395,8 @@ function App() {
         }
       }
       
-      // 正解時は選択ダイアログを表示するために状態を更新
       setCorrectGuessPlayers(updatedPlayers);
-      setShowContinueDialog(true);  // 選択ダイアログを表示
+      setShowContinueDialog(true);
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
@@ -442,28 +438,21 @@ function App() {
     setShowNumberDialog(false);
   };
 
-  // 正解後の選択を処理する関数を更新
+  // handleContinueChoiceの修正
   const handleContinueChoice = (shouldContinue: boolean) => {
-    // 最新のログを更新
+    // 選択後にログを更新
     setGameState(prev => ({
       ...prev,
       logs: prev.logs.map((log, index) => 
-        index === prev.logs.length - 1 ? { ...log, willContinue: shouldContinue } : log
-      )
+        index === prev.logs.length - 1 ? 
+        { ...log, willContinue: shouldContinue } : 
+        log
+      ),
+      players: correctGuessPlayers,
+      currentPlayerIndex: shouldContinue ? prev.currentPlayerIndex : getNextPlayerIndex(prev.currentPlayerIndex)
     }));
 
-    if (shouldContinue) {
-      // 続けて予想する場合は、ダイアログを閉じるだけ
-      setShowContinueDialog(false);
-    } else {
-      // 次のプレイヤーに回す場合
-      setGameState(prev => ({
-        ...prev,
-        players: correctGuessPlayers,
-        currentPlayerIndex: getNextPlayerIndex(prev.currentPlayerIndex)
-      }));
-      setShowContinueDialog(false);
-    }
+    setShowContinueDialog(false);
     setCorrectGuessPlayers([]);
   };
 
@@ -660,8 +649,6 @@ function App() {
           finalGuess.suit,
           finalGuess.number,
           isCorrect
-        ).map((log, index, array) => 
-          index === array.length - 1 ? { ...log, willContinue: decideToContinue(currentPlayer, gameState) } : log
         );
 
         if (isCorrect) {
@@ -685,9 +672,8 @@ function App() {
           // ゲーム状態の更新
           setGameState(prev => ({
             ...prev,
-            logs: updatedLogs.map((log, index) => 
-              index === updatedLogs.length - 1 ? { ...log, willContinue } : log
-            )
+            logs: updatedLogs,
+            players: updatedPlayers
           }));
 
           setShowComputerActionDialog(true);
@@ -719,14 +705,16 @@ function App() {
             nextPlayerIndex: getNextPlayerIndex(gameState.currentPlayerIndex),
             willContinue: false
           });
+
+          // ゲーム状態の更新
+          setGameState(prev => ({
+            ...prev,
+            logs: updatedLogs,
+            players: updatedPlayers
+          }));
+
           setShowComputerActionDialog(true);
         }
-
-        // ゲーム状態の更新
-        setGameState(prev => ({
-          ...prev,
-          logs: updatedLogs
-        }));
       } else {
         // 予想できるカードがない場合は次のプレイヤーへ
         setGameState(prev => ({
@@ -762,12 +750,12 @@ function App() {
               {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
               <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
             </div>
-            {log.isCorrect && log.willContinue !== undefined && (
-              <div className="log-content continuation-status">
-                {gameState.gameStatus === 'finished' && 
-                 index === 0 ? '→ ゲーム終了' : 
-                 log.willContinue ? '→ 続けて予想' : '→ 次のプレイヤーに交代'}
-              </div>
+            {log.isCorrect && (
+              (log.willContinue !== undefined || (showComputerActionDialog && computerAction?.isCorrect)) && (
+                <div className="log-content continuation-status">
+                  → {(log.willContinue !== undefined ? log.willContinue : computerAction?.willContinue) ? '続けて予想' : '次のプレイヤーに交代'}
+                </div>
+              )
             )}
           </div>
         ))}
@@ -780,14 +768,17 @@ function App() {
     if (!computerAction || !showComputerActionDialog) return null;
 
     const handleContinue = () => {
+      // コンピューターの行動完了時にログを更新
       setGameState(prev => ({
         ...prev,
+        logs: prev.logs.map((log, index) => 
+          index === prev.logs.length - 1 ? { ...log, willContinue: computerAction.willContinue } : log
+        ),
         players: computerAction.updatedPlayers,
         currentPlayerIndex: computerAction.nextPlayerIndex
       }));
       setShowComputerActionDialog(false);
       setSelectedCard(null);  // 選択状態をリセット
-      setSelectedCard(null);
       checkGameEnd(computerAction.updatedPlayers);
     };
 
@@ -957,84 +948,6 @@ function App() {
       </div>
     </div>
   );
-
-  // handleComputerTurnの修正
-  const handleComputerTurn = () => {
-    const targetPlayerIndex = getNextTargetPlayerIndex(gameState.currentPlayerIndex);
-    const possibleCards = gameState.players[targetPlayerIndex].cards
-      .map((card, index) => ({ card, index }))
-      .filter((item) => !item.card.isRevealed);
-
-    if (possibleCards.length > 0) {
-      const targetCardInfo = possibleCards[Math.floor(Math.random() * possibleCards.length)];
-      setSelectedCard({ playerIndex: targetPlayerIndex, cardIndex: targetCardInfo.index });
-
-      const guess = computerGuess(
-        gameState,
-        gameState.players[targetPlayerIndex],
-        targetCardInfo.index
-      );
-
-      if (!guess) {
-        setSelectedCard(null);
-        return;
-      }
-
-      const isCorrect = gameState.players[targetPlayerIndex].cards[targetCardInfo.index].suit === guess.suit &&
-                       gameState.players[targetPlayerIndex].cards[targetCardInfo.index].number === guess.number;
-
-      if (isCorrect) {
-        playCorrectSound();
-      } else {
-        playIncorrectSound();
-      }
-
-      const updatedPlayers = [...gameState.players];
-      if (isCorrect) {
-        updatedPlayers[targetPlayerIndex].cards[targetCardInfo.index].isRevealed = true;
-      } else {
-        const unrevealedCards = gameState.players[gameState.currentPlayerIndex].cards
-          .map((card, index) => ({ card, index }))
-          .filter(item => !item.card.isRevealed);
-
-        if (unrevealedCards.length > 0) {
-          const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
-          updatedPlayers[gameState.currentPlayerIndex].cards[randomCard.index].isRevealed = true;
-        }
-      }
-
-      setGameState(prev => ({
-        ...prev,
-        players: updatedPlayers,
-        currentPlayerIndex: isCorrect ? prev.currentPlayerIndex : getNextPlayerIndex(prev.currentPlayerIndex),
-        logs: [
-          ...prev.logs,
-          {
-            guessingPlayer: gameState.players[gameState.currentPlayerIndex].name,
-            targetPlayer: gameState.players[targetPlayerIndex].name,
-            cardIndex: targetCardInfo.index,
-            guessedSuit: guess.suit,
-            guessedNumber: guess.number,
-            isCorrect,
-            timestamp: Date.now()
-          }
-        ]
-      }));
-
-      setComputerAction({
-        player: gameState.players[gameState.currentPlayerIndex].name,
-        targetPlayer: gameState.players[targetPlayerIndex].name,
-        cardIndex: targetCardInfo.index,
-        guessedCard: { suit: guess.suit, number: guess.number },
-        isCorrect,
-        updatedPlayers,
-        nextPlayerIndex: isCorrect ? gameState.currentPlayerIndex : getNextPlayerIndex(gameState.currentPlayerIndex),
-        willContinue: isCorrect
-      });
-
-      setShowComputerActionDialog(true);
-    }
-  };
 
   // ダイアログが表示された時にフォーカスを設定
   useEffect(() => {
@@ -1253,9 +1166,7 @@ function App() {
                       </div>
                       {log.isCorrect && log.willContinue !== undefined && (
                         <div className="log-content continuation-status">
-                          {gameState.gameStatus === 'finished' && 
-                           index === 0 ? '→ ゲーム終了' : 
-                           log.willContinue ? '→ 続けて予想' : '→ 次のプレイヤーに交代'}
+                          → {log.willContinue ? '続けて予想' : '次のプレイヤーに交代'}
                         </div>
                       )}
                     </div>
