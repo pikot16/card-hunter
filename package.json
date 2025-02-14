@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node ./node_modules/typescript/bin/tsc && node ./node_modules/vite/bin/vite.js build",
+    "build": "npm run tsc && npm run vite-build",
+    "vite-build": "vite build",
+    "tsc": "tsc",
     "lint": "eslint .",
     "preview": "vite preview",
     "test:ai": "tsc -p tsconfig.test.json && node dist-test/utils/runAITest.js"
