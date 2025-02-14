@@ -277,18 +277,19 @@ function App() {
         !updatedEliminationOrder.includes(player.id)
       );
       
-      // 残りのプレイヤーを脱落順に追加（最後に脱落したプレイヤーから順に）
+      // 残りのプレイヤーを脱落順に追加
       remainingPlayers.forEach(player => {
         if (!updatedEliminationOrder.includes(player.id)) {
           updatedEliminationOrder.push(player.id);
         }
       });
 
+      // ゲーム状態を更新
       setGameState(prev => ({
         ...prev,
-        gameStatus: 'finished',
+        gameStatus: 'finished' as const,
         winner: winner,
-        players,
+        players: players,
         currentPlayerIndex: prev.currentPlayerIndex,
         logs: prev.logs,
         eliminationOrder: updatedEliminationOrder
@@ -757,18 +758,8 @@ function App() {
             {log.isCorrect && (
               (log.willContinue !== undefined || (showComputerActionDialog && computerAction?.isCorrect)) && (
                 <div className="log-content continuation-status">
-                  → {(() => {
-                    // 最後の1人になった時のみゲーム終了を表示
-                    const survivingPlayers = gameState.players.filter(p => 
-                      !p.cards.every(card => card.isRevealed)
-                    );
-                    if (survivingPlayers.length === 1) {
-                      return 'ゲーム終了';
-                    }
-                    // 通常の場合
-                    return (log.willContinue !== undefined ? log.willContinue : computerAction?.willContinue) ? 
-                      '続けて予想' : '次のプレイヤーに交代';
-                  })()}
+                  → {(log.willContinue !== undefined ? log.willContinue : computerAction?.willContinue) ? 
+                      '続けて予想' : '次のプレイヤーに交代'}
                 </div>
               )
             )}
@@ -829,7 +820,7 @@ function App() {
     };
   };
 
-  // プレイヤーの順位を計算する関数を更新
+  // プレイヤーの順位を計算する関数を完全に書き直し
   const calculatePlayerRanks = () => {
     const ranks = new Map();
     
@@ -838,13 +829,28 @@ function App() {
       ranks.set(gameState.winner.id, 1);
     }
     
-    // 脱落順から順位を設定（最初に脱落 = 4位、次に脱落 = 3位、最後に脱落 = 2位）
-    const eliminationOrder = gameState.eliminationOrder;
-    let currentRank = 4;
+    // 脱落順から順位を設定
+    const eliminationOrder = [...gameState.eliminationOrder];
     
-    eliminationOrder.forEach(playerId => {
+    // 脱落順の逆順で2位から順位を設定
+    for (let i = eliminationOrder.length - 1; i >= 0; i--) {
+      const playerId = eliminationOrder[i];
       if (!ranks.has(playerId)) {
-        ranks.set(playerId, currentRank--);
+        // 最後に脱落したプレイヤーから順に2位、3位、4位を設定
+        ranks.set(playerId, 2 + (eliminationOrder.length - 1 - i));
+      }
+    }
+
+    // まだ順位が設定されていないプレイヤーがいる場合（ゲーム進行中）
+    gameState.players.forEach(player => {
+      if (!ranks.has(player.id)) {
+        if (player.cards.every(card => card.isRevealed)) {
+          // 全てのカードが表になっているプレイヤーは4位
+          ranks.set(player.id, 4);
+        } else {
+          // まだゲーム中のプレイヤーは暫定1位
+          ranks.set(player.id, 1);
+        }
       }
     });
 
@@ -879,7 +885,7 @@ function App() {
     return (
       <div className="player-stats">
         <div className={`player-rank ${rank === 1 ? 'first' : ''}`}>
-          {rank}位{rank === 1 && ' 👑'}
+          {`${rank}位`}{rank === 1 && ' 👑'}
         </div>
         <h3>
           {player.name}
