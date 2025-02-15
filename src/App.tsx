@@ -338,14 +338,45 @@ function App() {
       console.log(`脱落したプレイヤー: ${targetPlayer.name} (予想対象のプレイヤー)`);
     }
 
-    setGameState(prev => ({
-      ...prev,
+    // 3. 一時的なゲーム状態を作成
+    const tempGameState = {
+      ...gameState,
       players: updatedPlayers,
       currentPlayerIndex: nextIndex,
       eliminationOrder: updatedEliminationOrder
-    }));
-    
-    checkGameEnd(updatedPlayers);
+    };
+
+    // 4. ゲーム終了チェック
+    const playersWithUnrevealedCards = updatedPlayers.filter(player =>
+      player.cards.some(card => !card.isRevealed)
+    );
+
+    if (playersWithUnrevealedCards.length === 1) {
+      const winner = playersWithUnrevealedCards[0];
+      
+      // 残りのプレイヤーを脱落順に追加
+      const remainingPlayers = updatedPlayers.filter(player => 
+        player.id !== winner.id && 
+        !updatedEliminationOrder.includes(player.id)
+      );
+      
+      remainingPlayers.forEach(player => {
+        if (!updatedEliminationOrder.includes(player.id)) {
+          updatedEliminationOrder.push(player.id);
+        }
+      });
+
+      // 5. 最終的なゲーム状態を更新
+      setGameState({
+        ...tempGameState,
+        gameStatus: 'finished' as const,
+        winner: winner,
+        eliminationOrder: updatedEliminationOrder
+      });
+    } else {
+      // 6. 通常のターン終了時の状態更新
+      setGameState(tempGameState);
+    }
   };
 
   // ログを追加する関数
