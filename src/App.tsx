@@ -277,35 +277,18 @@ function App() {
         !updatedEliminationOrder.includes(player.id)
       );
       
-      console.log(`=== 最終順位の確定 ===`);
-      console.log(`勝者: ${winner.name}`);
-      console.log(`現在の脱落順:`, gameState.eliminationOrder.map(id => {
-        const player = gameState.players.find(p => p.id === id);
-        return player ? player.name : 'Unknown';
-      }));
-      
-      // 残りのプレイヤーを脱落順に追加
+      // 残りのプレイヤーを脱落順に追加（最後に脱落したプレイヤーから順に）
       remainingPlayers.forEach(player => {
         if (!updatedEliminationOrder.includes(player.id)) {
           updatedEliminationOrder.push(player.id);
         }
       });
 
-      console.log(`最終的な順位:`);
-      console.log(`1位: ${winner.name}`);
-      updatedEliminationOrder.map((id, index) => {
-        const player = players.find(p => p.id === id);
-        if (player) {
-          console.log(`${index + 2}位: ${player.name}`);
-        }
-      });
-
-      // ゲーム状態を更新
       setGameState(prev => ({
         ...prev,
-        gameStatus: 'finished' as const,
+        gameStatus: 'finished',
         winner: winner,
-        players: players,
+        players,
         currentPlayerIndex: prev.currentPlayerIndex,
         logs: prev.logs,
         eliminationOrder: updatedEliminationOrder
@@ -316,67 +299,29 @@ function App() {
   // ターン終了時の処理を更新
   const endTurn = (updatedPlayers: Player[]) => {
     const nextIndex = getNextPlayerIndex(gameState.currentPlayerIndex);
-    let updatedEliminationOrder = [...gameState.eliminationOrder];
 
-    // 1. 現在のプレイヤーの脱落チェック
+    // 現在のプレイヤーが全カード表向きになった場合、脱落順に追加
     const currentPlayer = updatedPlayers[gameState.currentPlayerIndex];
     if (currentPlayer.cards.every(card => card.isRevealed) && 
-        !updatedEliminationOrder.includes(currentPlayer.id)) {
-      updatedEliminationOrder.push(currentPlayer.id);
-      console.log(`=== プレイヤー脱落 ===`);
-      console.log(`脱落したプレイヤー: ${currentPlayer.name} (現在のプレイヤー)`);
-    }
-
-    // 2. 予想対象のプレイヤーの脱落チェック
-    const targetPlayerIndex = getNextTargetPlayerIndex(gameState.currentPlayerIndex);
-    const targetPlayer = updatedPlayers[targetPlayerIndex];
-    if (targetPlayer && 
-        targetPlayer.cards.every(card => card.isRevealed) && 
-        !updatedEliminationOrder.includes(targetPlayer.id)) {
-      updatedEliminationOrder.push(targetPlayer.id);
-      console.log(`=== プレイヤー脱落 ===`);
-      console.log(`脱落したプレイヤー: ${targetPlayer.name} (予想対象のプレイヤー)`);
-    }
-
-    // 3. 一時的なゲーム状態を作成
-    const tempGameState = {
-      ...gameState,
-      players: updatedPlayers,
-      currentPlayerIndex: nextIndex,
-      eliminationOrder: updatedEliminationOrder
-    };
-
-    // 4. ゲーム終了チェック
-    const playersWithUnrevealedCards = updatedPlayers.filter(player =>
-      player.cards.some(card => !card.isRevealed)
-    );
-
-    if (playersWithUnrevealedCards.length === 1) {
-      const winner = playersWithUnrevealedCards[0];
+        !gameState.eliminationOrder.includes(currentPlayer.id)) {
+      // 脱落順を更新
+      const updatedEliminationOrder = [...gameState.eliminationOrder, currentPlayer.id];
       
-      // 残りのプレイヤーを脱落順に追加
-      const remainingPlayers = updatedPlayers.filter(player => 
-        player.id !== winner.id && 
-        !updatedEliminationOrder.includes(player.id)
-      );
-      
-      remainingPlayers.forEach(player => {
-        if (!updatedEliminationOrder.includes(player.id)) {
-          updatedEliminationOrder.push(player.id);
-        }
-      });
-
-      // 5. 最終的なゲーム状態を更新
-      setGameState({
-        ...tempGameState,
-        gameStatus: 'finished' as const,
-        winner: winner,
+      setGameState(prev => ({
+        ...prev,
+        players: updatedPlayers,
+        currentPlayerIndex: nextIndex,
         eliminationOrder: updatedEliminationOrder
-      });
+      }));
     } else {
-      // 6. 通常のターン終了時の状態更新
-      setGameState(tempGameState);
+      setGameState(prev => ({
+        ...prev,
+        players: updatedPlayers,
+        currentPlayerIndex: nextIndex
+      }));
     }
+    
+    checkGameEnd(updatedPlayers);
   };
 
   // ログを追加する関数
@@ -398,6 +343,7 @@ function App() {
     return [...gameState.logs, newLog];
   };
 
+  // handleGuess関数の正解時の処理を修正
   const handleGuess = (guessedNumber: number) => {
     if (!selectedCard || !selectedSuit) return;
 
@@ -421,35 +367,23 @@ function App() {
 
     if (isCorrect) {
       updatedPlayers[selectedCard.playerIndex].cards[selectedCard.cardIndex].isRevealed = true;
-      
       playCorrectSound();
       
-      const survivingPlayers = updatedPlayers.filter(player => 
-        !player.cards.every(card => card.isRevealed)
-      );
-
-      if (survivingPlayers.length === 1) {
-        setGameState(prev => ({
-          ...prev,
-          players: updatedPlayers,
-          gameStatus: 'finished',
-          winner: survivingPlayers[0],
-          logs: updatedLogs
-        }));
-        return;
-      }
-      
-      // ゲーム終了条件を満たしていない場合のみ続行ダイアログを表示
-      if (survivingPlayers.length > 1) {
-        setCorrectGuessPlayers(updatedPlayers);
-        setShowContinueDialog(true);
-      }
-      
+      // まず状態を更新
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
         logs: updatedLogs
       }));
+      
+      // ゲーム終了していない場合のみ続行ダイアログを表示
+      if (gameState.gameStatus !== 'finished') {
+        setCorrectGuessPlayers(updatedPlayers);
+        setShowContinueDialog(true);
+      }
+      
+      // ゲーム終了判定
+      checkGameEnd(updatedPlayers);
     } else {
       // 不正解時も同様に、効果音を先に再生してからダイアログを表示
       playIncorrectSound();
@@ -483,22 +417,29 @@ function App() {
     setShowNumberDialog(false);
   };
 
-  // handleContinueChoiceの修正
+  // handleContinueChoice関数を修正
   const handleContinueChoice = (shouldContinue: boolean) => {
-    // 選択後にログを更新
+    const nextIndex = shouldContinue ? 
+      gameState.currentPlayerIndex : 
+      getNextPlayerIndex(gameState.currentPlayerIndex);
+    
+    // 状態を更新
     setGameState(prev => ({
       ...prev,
+      players: correctGuessPlayers,
+      currentPlayerIndex: nextIndex,
       logs: prev.logs.map((log, index) => 
         index === prev.logs.length - 1 ? 
         { ...log, willContinue: shouldContinue } : 
         log
-      ),
-      players: correctGuessPlayers,
-      currentPlayerIndex: shouldContinue ? prev.currentPlayerIndex : getNextPlayerIndex(prev.currentPlayerIndex)
+      )
     }));
 
     setShowContinueDialog(false);
     setCorrectGuessPlayers([]);
+    
+    // endTurn関数を使用して脱落判定とゲーム終了判定を行う
+    endTurn(correctGuessPlayers);
   };
 
   // 正解時の選択ダイアログコンポーネント
@@ -787,27 +728,31 @@ function App() {
         {showComputerActionDialog && ' (Space / Enter で次へ)'}
       </h3>
       <div className="logs-container">
-        {gameState.logs.slice().reverse().map((log, index) => (
-          <div key={log.timestamp} className={`log-item ${log.isCorrect ? 'correct' : 'incorrect'}`}>
-            <div className="log-header">
-              <span className="log-number">{gameState.logs.length - index}.</span>
-              <span className="player-name">{log.guessingPlayer}</span>が
-              <span className="player-name">{log.targetPlayer}</span>の
+        {gameState.logs.slice().reverse().map((log, index) => {
+          const isLastLog = index === 0;
+          const isGameFinished = gameState.gameStatus === 'finished';
+          
+          return (
+            <div key={log.timestamp} className={`log-item ${log.isCorrect ? 'correct' : 'incorrect'}`}>
+              <div className="log-header">
+                <span className="log-number">{gameState.logs.length - index}.</span>
+                <span className="player-name">{log.guessingPlayer}</span>が
+                <span className="player-name">{log.targetPlayer}</span>の
+              </div>
+              <div className="log-content">
+                {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
+                <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
+              </div>
+              {log.isCorrect && !isGameFinished && 
+                (log.willContinue !== undefined || (showComputerActionDialog && computerAction?.isCorrect)) && (
+                  <div className="log-content continuation-status">
+                    → {(log.willContinue !== undefined ? log.willContinue : computerAction?.willContinue) ? 
+                        '続けて予想' : '次のプレイヤーに交代'}
+                  </div>
+                )}
             </div>
-            <div className="log-content">
-              {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
-              <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
-            </div>
-            {log.isCorrect && (
-              (log.willContinue !== undefined || (showComputerActionDialog && computerAction?.isCorrect)) && (
-                <div className="log-content continuation-status">
-                  → {(log.willContinue !== undefined ? log.willContinue : computerAction?.willContinue) ? 
-                      '続けて予想' : '次のプレイヤーに交代'}
-                </div>
-              )
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -828,6 +773,8 @@ function App() {
       }));
       setShowComputerActionDialog(false);
       setSelectedCard(null);  // 選択状態をリセット
+      
+      // ゲーム終了判定
       checkGameEnd(computerAction.updatedPlayers);
     };
 
@@ -863,36 +810,34 @@ function App() {
     };
   };
 
-  // プレイヤーの順位を計算する関数を修正
+  // プレイヤーの順位を計算する関数を更新
   const calculatePlayerRanks = () => {
     const ranks = new Map();
+    const TOTAL_PLAYERS = 4;  // プレイヤー数を固定
+    
+    // 勝者（最後まで残ったプレイヤー）は1位
+    if (gameState.winner) {
+      ranks.set(gameState.winner.id, 1);
+    }
     
     // 脱落順に基づいて順位を設定
-    // 例: [2, 1, 0] の場合、id=2が4位、id=1が3位、id=0が2位
-    gameState.eliminationOrder.forEach((playerId, index) => {
-      // 最初に脱落したプレイヤー（index=0）が最下位（4位）
-      const rank = 4 - index;
-      ranks.set(playerId, rank);
-      
-      // 脱落時の順位をログ出力
-      const player = gameState.players.find(p => p.id === playerId);
-      if (player) {
-        console.log(`${player.name}が${rank}位で確定`);
+    const eliminationOrder = [...gameState.eliminationOrder];
+    
+    // 脱落順に基づいて順位を設定（最初に脱落したプレイヤーが4位）
+    eliminationOrder.forEach((playerId, index) => {
+      if (playerId !== gameState.winner?.id) {  // 勝者は既に1位が設定されているのでスキップ
+        ranks.set(playerId, TOTAL_PLAYERS - index);  // 最初の要素が4位
       }
     });
 
-    // 勝者を1位に設定
-    if (gameState.winner) {
-      ranks.set(gameState.winner.id, 1);
-      console.log(`${gameState.winner.name}が1位で確定`);
-    }
-
-    // 現在の全順位をログ出力
-    console.log('\n=== 現在の順位状況 ===');
-    gameState.players.forEach(player => {
-      const rank = ranks.get(player.id);
-      console.log(`${player.name}: ${rank ? rank + '位' : '未確定'}`);
-    });
+    // デバッグ用のログ出力
+    console.log('Winner:', gameState.winner?.name);
+    console.log('Elimination Order:', gameState.eliminationOrder.map(id => 
+      gameState.players.find(p => p.id === id)?.name
+    ));
+    console.log('Ranks:', Array.from(ranks.entries()).map(([id, rank]) => 
+      `${gameState.players.find(p => p.id === id)?.name}: ${rank}位`
+    ));
 
     return ranks;
   };

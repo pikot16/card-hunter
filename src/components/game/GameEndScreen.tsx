@@ -18,7 +18,7 @@ export const GameEndScreen: React.FC<GameEndScreenProps> = ({
     if (winner.id === playerId) return '優勝';
     const index = eliminationOrder.indexOf(playerId);
     if (index === -1) return '';
-    return `${eliminationOrder.length - index}位`;
+    return `${index + 2}位`;
   };
 
   return (
