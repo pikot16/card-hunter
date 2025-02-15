@@ -1,3 +1,7 @@
+export * from './models/card';
+export * from './models/player';
+export * from './models/game';
+
 export interface Card {
   suit: 'hearts' | 'diamonds' | 'clubs' | 'spades';
   number: number;
