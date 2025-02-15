@@ -1,0 +1,139 @@
+.game-end-screen {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #2d2d2d;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 400px;
+  max-width: 90vw;
+  z-index: 2000;
+}
+
+.winner-section {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.winner-section h2 {
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  font-size: 1.8em;
+}
+
+.winner-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.winner-crown {
+  font-size: 3em;
+  animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.winner-info h3 {
+  color: #8bc34a;
+  margin: 0;
+  font-size: 1.6em;
+}
+
+.results-section {
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.results-section h4 {
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  font-size: 1.2em;
+  text-align: center;
+}
+
+.player-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.result-entry {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background-color: #363636;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.result-entry:hover {
+  background-color: #404040;
+}
+
+.result-entry.winner {
+  background-color: rgba(139, 195, 74, 0.1);
+  border: 1px solid #8bc34a;
+}
+
+.placement {
+  min-width: 60px;
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.player-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.player-name {
+  color: #64b5f6;
+  font-weight: bold;
+}
+
+.player-type {
+  display: flex;
+  gap: 8px;
+  color: #888888;
+  font-size: 0.9em;
+}
+
+.skill-level,
+.personality-type {
+  padding: 2px 6px;
+  background-color: #1e1e1e;
+  border-radius: 4px;
+}
+
+.restart-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.restart-button:hover {
+  background-color: #45a049;
+} 

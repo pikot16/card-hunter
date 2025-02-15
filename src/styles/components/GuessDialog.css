@@ -1,0 +1,128 @@
+.guess-dialog {
+  position: fixed;
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 300px;
+  z-index: 1000;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #3d3d3d;
+  border-radius: 8px 8px 0 0;
+  cursor: move;
+}
+
+.dialog-header h3 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.4em;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.close-button:hover {
+  color: #ff5252;
+}
+
+.suit-selection {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.suit-button {
+  background-color: #1e1e1e;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 16px;
+  font-size: 2em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.suit-button.hearts,
+.suit-button.diamonds {
+  color: #ff5252;
+}
+
+.suit-button.clubs,
+.suit-button.spades {
+  color: #ffffff;
+}
+
+.suit-button:hover {
+  background-color: #363636;
+  transform: scale(1.05);
+}
+
+.number-selection {
+  padding: 16px;
+}
+
+.selected-suit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+}
+
+.suit-symbol {
+  font-size: 1.8em;
+}
+
+.suit-symbol.hearts,
+.suit-symbol.diamonds {
+  color: #ff5252;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.4em;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.back-button:hover {
+  color: #64b5f6;
+}
+
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.number-button {
+  background-color: #1e1e1e;
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  color: #ffffff;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.number-button:hover {
+  background-color: #363636;
+  transform: scale(1.05);
+} 

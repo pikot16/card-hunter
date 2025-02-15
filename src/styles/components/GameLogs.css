@@ -1,0 +1,137 @@
+.game-logs {
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-logs h3 {
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  font-size: 1.2em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #4a4a4a;
+}
+
+.logs-container {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.logs-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.logs-container::-webkit-scrollbar-track {
+  background: #1e1e1e;
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb {
+  background: #4a4a4a;
+  border-radius: 4px;
+}
+
+.logs-container::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+.no-logs {
+  color: #888888;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+.log-entry {
+  background-color: #1e1e1e;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s;
+}
+
+.log-entry:hover {
+  background-color: #363636;
+}
+
+.log-entry.correct {
+  border-left: 4px solid #4caf50;
+}
+
+.log-entry.incorrect {
+  border-left: 4px solid #ff5252;
+}
+
+.log-time {
+  color: #888888;
+  font-size: 0.9em;
+  margin-bottom: 4px;
+}
+
+.log-content {
+  color: #ffffff;
+}
+
+.log-players {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-name,
+.target-name {
+  color: #64b5f6;
+  font-weight: bold;
+}
+
+.log-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-index {
+  color: #8bc34a;
+  font-weight: bold;
+}
+
+.card-guess {
+  font-size: 1.2em;
+  padding: 2px 6px;
+  background-color: #363636;
+  border-radius: 4px;
+}
+
+.card-guess.hearts,
+.card-guess.diamonds {
+  color: #ff5252;
+}
+
+.result-icon {
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+.result-icon.correct {
+  color: #4caf50;
+}
+
+.result-icon.incorrect {
+  color: #ff5252;
+}
+
+.continue-indicator {
+  color: #8bc34a;
+  font-size: 0.9em;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: rgba(139, 195, 74, 0.1);
+  border-radius: 4px;
+  display: inline-block;
+} 

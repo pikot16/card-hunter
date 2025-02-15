@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import Draggable, { DraggableCore } from 'react-draggable'
+import Draggable from 'react-draggable'
 import './App.css'
-import { GameState, Player, Card as CardType, GameLog } from './types/game'
+import { GameState, Player, Card as CardType, GameLog, CardNumber } from './types/game'
 import { shuffleCards, getDisplayNumber, computerGuess } from './utils/cardUtils'
 import { playCorrectSound, playIncorrectSound } from './utils/soundUtils'
 import Card from './components/Card'
-import { makeStrategicGuess, decideToContinue } from './utils/computerStrategy'
+import { decideToContinue } from './utils/computerStrategy'
 import { runTest } from './utils/runAITest'
 import { stopTest } from './utils/aiTest'
 
@@ -210,7 +210,7 @@ function App() {
   const initializePlayers = (playerName: string) => {
     // カードデッキを作成
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'] as const;
-    const numbers = Array.from({ length: 13 }, (_, i) => i + 1);
+    const numbers = Array.from({ length: 13 }, (_, i) => (i + 1) as CardNumber);
     const allCards = suits.flatMap(suit =>
       numbers.map(number => ({ suit, number, isRevealed: false }))
     );
@@ -515,7 +515,7 @@ function App() {
     }
 
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'] as const;
-    const numbers = Array.from({ length: 13 }, (_, i) => i + 1);
+    const numbers = Array.from({ length: 13 }, (_, i) => (i + 1) as CardNumber);
     const allCards = suits.flatMap(suit =>
       numbers.map(number => ({ suit, number, isRevealed: false }))
     );

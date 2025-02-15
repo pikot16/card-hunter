@@ -1,0 +1,110 @@
+.computer-action-dialog {
+  position: fixed;
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 320px;
+  z-index: 1000;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #3d3d3d;
+  border-radius: 8px 8px 0 0;
+  cursor: move;
+}
+
+.dialog-header h3 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 1.2em;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.4em;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.close-button:hover {
+  color: #ff5252;
+}
+
+.action-content {
+  padding: 16px;
+  color: #ffffff;
+}
+
+.action-description {
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.player-name,
+.target-name {
+  color: #64b5f6;
+  font-weight: bold;
+}
+
+.card-index {
+  color: #8bc34a;
+  font-weight: bold;
+}
+
+.guess-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #1e1e1e;
+  border-radius: 6px;
+}
+
+.card-guess {
+  font-size: 1.6em;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: #363636;
+}
+
+.card-guess.hearts,
+.card-guess.diamonds {
+  color: #ff5252;
+}
+
+.result-icon {
+  font-size: 2em;
+  font-weight: bold;
+}
+
+.result-icon.correct {
+  color: #4caf50;
+}
+
+.result-icon.incorrect {
+  color: #ff5252;
+}
+
+.continue-button {
+  width: 100%;
+  padding: 12px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1em;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.continue-button:hover {
+  background-color: #45a049;
+} 
