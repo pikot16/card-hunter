@@ -313,72 +313,37 @@ function App() {
     }
   };
 
-  // プレイヤーの脱落をチェックする関数
-  const checkPlayerElimination = (players: Player[], playerIndex: number, currentEliminationOrder: number[]): number[] => {
-    const player = players[playerIndex];
-    const isAllCardsRevealed = player.cards.every(card => card.isRevealed);
-    
-    // 全カードが表になっていて、まだ脱落リストに入っていない場合
-    if (isAllCardsRevealed && !currentEliminationOrder.includes(playerIndex)) {
-      console.log(`=== プレイヤー脱落 ===`);
-      console.log(`脱落したプレイヤー: ${player.name}`);
-      console.log(`現在の脱落順:`, currentEliminationOrder.map(id => {
-        const player = players.find(p => p.id === id);
-        return player ? player.name : 'Unknown';
-      }));
-      console.log(`更新後の脱落順:`, [...currentEliminationOrder, playerIndex].map(id => {
-        const player = players.find(p => p.id === id);
-        return player ? player.name : 'Unknown';
-      }));
-      
-      // 現在の順位状況も表示
-      console.log(`=== 現在の順位状況 ===`);
-      const ranks = calculatePlayerRanks();
-      players.forEach(p => {
-        const rank = ranks.get(p.id);
-        console.log(`${p.name}: ${rank}位`);
-      });
-      
-      return [...currentEliminationOrder, playerIndex];
-    }
-    
-    return currentEliminationOrder;
-  };
-
   // ターン終了時の処理を更新
   const endTurn = (updatedPlayers: Player[]) => {
     const nextIndex = getNextPlayerIndex(gameState.currentPlayerIndex);
+    let updatedEliminationOrder = [...gameState.eliminationOrder];
 
-    // 現在のプレイヤーが全カード表向きになった場合、脱落順に追加
+    // 1. 現在のプレイヤーの脱落チェック
     const currentPlayer = updatedPlayers[gameState.currentPlayerIndex];
     if (currentPlayer.cards.every(card => card.isRevealed) && 
-        !gameState.eliminationOrder.includes(currentPlayer.id)) {
-      // 脱落順を更新
-      const updatedEliminationOrder = [...gameState.eliminationOrder, currentPlayer.id];
-      
-      console.log(`=== 脱落順の更新（ターン終了時） ===`);
-      console.log(`現在の脱落順:`, gameState.eliminationOrder.map(id => {
-        const player = gameState.players.find(p => p.id === id);
-        return player ? player.name : 'Unknown';
-      }));
-      console.log(`更新後の脱落順:`, updatedEliminationOrder.map(id => {
-        const player = gameState.players.find(p => p.id === id);
-        return player ? player.name : 'Unknown';
-      }));
-      
-      setGameState(prev => ({
-        ...prev,
-        players: updatedPlayers,
-        currentPlayerIndex: nextIndex,
-        eliminationOrder: updatedEliminationOrder
-      }));
-    } else {
-      setGameState(prev => ({
-        ...prev,
-        players: updatedPlayers,
-        currentPlayerIndex: nextIndex
-      }));
+        !updatedEliminationOrder.includes(currentPlayer.id)) {
+      updatedEliminationOrder.push(currentPlayer.id);
+      console.log(`=== プレイヤー脱落 ===`);
+      console.log(`脱落したプレイヤー: ${currentPlayer.name} (現在のプレイヤー)`);
     }
+
+    // 2. 予想対象のプレイヤーの脱落チェック
+    const targetPlayerIndex = getNextTargetPlayerIndex(gameState.currentPlayerIndex);
+    const targetPlayer = updatedPlayers[targetPlayerIndex];
+    if (targetPlayer && 
+        targetPlayer.cards.every(card => card.isRevealed) && 
+        !updatedEliminationOrder.includes(targetPlayer.id)) {
+      updatedEliminationOrder.push(targetPlayer.id);
+      console.log(`=== プレイヤー脱落 ===`);
+      console.log(`脱落したプレイヤー: ${targetPlayer.name} (予想対象のプレイヤー)`);
+    }
+
+    setGameState(prev => ({
+      ...prev,
+      players: updatedPlayers,
+      currentPlayerIndex: nextIndex,
+      eliminationOrder: updatedEliminationOrder
+    }));
     
     checkGameEnd(updatedPlayers);
   };
@@ -426,9 +391,6 @@ function App() {
     if (isCorrect) {
       updatedPlayers[selectedCard.playerIndex].cards[selectedCard.cardIndex].isRevealed = true;
       
-      // 対象プレイヤーの脱落チェック
-      const newEliminationOrder = checkPlayerElimination(updatedPlayers, selectedCard.playerIndex, gameState.eliminationOrder);
-
       playCorrectSound();
       
       const survivingPlayers = updatedPlayers.filter(player => 
@@ -441,8 +403,7 @@ function App() {
           players: updatedPlayers,
           gameStatus: 'finished',
           winner: survivingPlayers[0],
-          logs: updatedLogs,
-          eliminationOrder: newEliminationOrder
+          logs: updatedLogs
         }));
         return;
       }
@@ -456,8 +417,7 @@ function App() {
       setGameState(prev => ({
         ...prev,
         players: updatedPlayers,
-        logs: updatedLogs,
-        eliminationOrder: newEliminationOrder
+        logs: updatedLogs
       }));
     } else {
       // 不正解時も同様に、効果音を先に再生してからダイアログを表示
@@ -541,10 +501,13 @@ function App() {
   };
 
   const handleOwnCardSelect = (cardIndex: number) => {
-    const updatedPlayers = [...gameState.players];
-    updatedPlayers[gameState.currentPlayerIndex].cards[cardIndex].isRevealed = true;
-    
-    endTurn(updatedPlayers);
+    if (isSelectingOwnCard) {  // ガード条件を追加
+      const updatedPlayers = [...gameState.players];
+      updatedPlayers[gameState.currentPlayerIndex].cards[cardIndex].isRevealed = true;
+      
+      endTurn(updatedPlayers);
+      setIsSelectingOwnCard(false);  // フラグをリセット
+    }
   };
 
   // startGame関数を更新
@@ -873,34 +836,39 @@ function App() {
   const calculatePlayerRanks = () => {
     const ranks = new Map();
     
-    // 脱落順に基づいて順位を設定（最初に脱落したプレイヤーが4位）
+    // 脱落順に基づいて順位を設定
+    // 例: [2, 1, 0] の場合、id=2が4位、id=1が3位、id=0が2位
     gameState.eliminationOrder.forEach((playerId, index) => {
-      ranks.set(playerId, 4 - index);
+      // 最初に脱落したプレイヤー（index=0）が最下位（4位）
+      const rank = 4 - index;
+      ranks.set(playerId, rank);
+      
+      // 脱落時の順位をログ出力
+      const player = gameState.players.find(p => p.id === playerId);
+      if (player) {
+        console.log(`${player.name}が${rank}位で確定`);
+      }
     });
 
-    // 勝者（最後まで残ったプレイヤー）を1位に設定
+    // 勝者を1位に設定
     if (gameState.winner) {
       ranks.set(gameState.winner.id, 1);
+      console.log(`${gameState.winner.name}が1位で確定`);
     }
 
-    console.log('=== 現在の順位状況 ===');
-    console.log('脱落順:', gameState.eliminationOrder.map(id => {
-      const player = gameState.players.find(p => p.id === id);
-      return player ? player.name : 'Unknown';
-    }));
+    // 現在の全順位をログ出力
+    console.log('\n=== 現在の順位状況 ===');
     gameState.players.forEach(player => {
       const rank = ranks.get(player.id);
-      console.log(`${player.name}: ${rank ? rank + '位' : '未定'}`);
+      console.log(`${player.name}: ${rank ? rank + '位' : '未確定'}`);
     });
 
     return ranks;
   };
 
   // 統計情報を表示するコンポーネント
-  const PlayerStats = ({ player }: { player: Player }) => {
+  const PlayerStats = ({ player, rank }: { player: Player; rank: number | undefined }) => {
     const stats = calculatePlayerStats(player.name);
-    const ranks = calculatePlayerRanks();
-    const rank = ranks.get(player.id);
 
     // コンピューターの強さと性格タイプを日本語に変換
     const getSkillLevelJP = (level?: string) => {
@@ -1172,11 +1140,21 @@ function App() {
               </button>
             </div>
 
-            <div className="game-stats">
-              {gameState.players.map((player) => (
-                <PlayerStats key={player.id} player={player} />
-              ))}
-            </div>
+            {/* 順位を一度だけ計算 */}
+            {(() => {
+              const ranks = calculatePlayerRanks();
+              return (
+                <div className="game-stats">
+                  {gameState.players.map((player) => (
+                    <PlayerStats 
+                      key={player.id} 
+                      player={player} 
+                      rank={ranks.get(player.id)}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
 
             <div className="game-end-container">
               <div className="game-end-main">
