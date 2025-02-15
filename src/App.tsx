@@ -277,10 +277,26 @@ function App() {
         !updatedEliminationOrder.includes(player.id)
       );
       
+      console.log(`=== 最終順位の確定 ===`);
+      console.log(`勝者: ${winner.name}`);
+      console.log(`現在の脱落順:`, gameState.eliminationOrder.map(id => {
+        const player = gameState.players.find(p => p.id === id);
+        return player ? player.name : 'Unknown';
+      }));
+      
       // 残りのプレイヤーを脱落順に追加
       remainingPlayers.forEach(player => {
         if (!updatedEliminationOrder.includes(player.id)) {
           updatedEliminationOrder.push(player.id);
+        }
+      });
+
+      console.log(`最終的な順位:`);
+      console.log(`1位: ${winner.name}`);
+      updatedEliminationOrder.map((id, index) => {
+        const player = players.find(p => p.id === id);
+        if (player) {
+          console.log(`${index + 2}位: ${player.name}`);
         }
       });
 
@@ -297,6 +313,38 @@ function App() {
     }
   };
 
+  // プレイヤーの脱落をチェックする関数
+  const checkPlayerElimination = (players: Player[], playerIndex: number, currentEliminationOrder: number[]): number[] => {
+    const player = players[playerIndex];
+    const isAllCardsRevealed = player.cards.every(card => card.isRevealed);
+    
+    // 全カードが表になっていて、まだ脱落リストに入っていない場合
+    if (isAllCardsRevealed && !currentEliminationOrder.includes(playerIndex)) {
+      console.log(`=== プレイヤー脱落 ===`);
+      console.log(`脱落したプレイヤー: ${player.name}`);
+      console.log(`現在の脱落順:`, currentEliminationOrder.map(id => {
+        const player = players.find(p => p.id === id);
+        return player ? player.name : 'Unknown';
+      }));
+      console.log(`更新後の脱落順:`, [...currentEliminationOrder, playerIndex].map(id => {
+        const player = players.find(p => p.id === id);
+        return player ? player.name : 'Unknown';
+      }));
+      
+      // 現在の順位状況も表示
+      console.log(`=== 現在の順位状況 ===`);
+      const ranks = calculatePlayerRanks();
+      players.forEach(p => {
+        const rank = ranks.get(p.id);
+        console.log(`${p.name}: ${rank}位`);
+      });
+      
+      return [...currentEliminationOrder, playerIndex];
+    }
+    
+    return currentEliminationOrder;
+  };
+
   // ターン終了時の処理を更新
   const endTurn = (updatedPlayers: Player[]) => {
     const nextIndex = getNextPlayerIndex(gameState.currentPlayerIndex);
@@ -307,6 +355,16 @@ function App() {
         !gameState.eliminationOrder.includes(currentPlayer.id)) {
       // 脱落順を更新
       const updatedEliminationOrder = [...gameState.eliminationOrder, currentPlayer.id];
+      
+      console.log(`=== 脱落順の更新（ターン終了時） ===`);
+      console.log(`現在の脱落順:`, gameState.eliminationOrder.map(id => {
+        const player = gameState.players.find(p => p.id === id);
+        return player ? player.name : 'Unknown';
+      }));
+      console.log(`更新後の脱落順:`, updatedEliminationOrder.map(id => {
+        const player = gameState.players.find(p => p.id === id);
+        return player ? player.name : 'Unknown';
+      }));
       
       setGameState(prev => ({
         ...prev,
@@ -342,20 +400,6 @@ function App() {
     };
 
     return [...gameState.logs, newLog];
-  };
-
-  // プレイヤーの脱落をチェックする関数
-  const checkPlayerElimination = (players: Player[], playerIndex: number, currentEliminationOrder: number[]): number[] => {
-    const player = players[playerIndex];
-    const isAllCardsRevealed = player.cards.every(card => card.isRevealed);
-    
-    // 全カードが表になっていて、まだ脱落リストに入っていない場合
-    if (isAllCardsRevealed && !currentEliminationOrder.includes(playerIndex)) {
-      console.log(`Player eliminated: ${player.name}`);
-      return [...currentEliminationOrder, playerIndex];
-    }
-    
-    return currentEliminationOrder;
   };
 
   const handleGuess = (guessedNumber: number) => {
@@ -825,60 +869,28 @@ function App() {
     };
   };
 
-  // プレイヤーの順位を計算する関数を完全に書き直し
+  // プレイヤーの順位を計算する関数を修正
   const calculatePlayerRanks = () => {
     const ranks = new Map();
     
-    // まず、各プレイヤーの状態を確認
-    const playerStatuses = gameState.players.map(player => ({
-      id: player.id,
-      name: player.name,
-      isEliminated: player.cards.every(card => card.isRevealed),
-      eliminationOrder: gameState.eliminationOrder.indexOf(player.id)
-    }));
+    // 脱落順に基づいて順位を設定（最初に脱落したプレイヤーが4位）
+    gameState.eliminationOrder.forEach((playerId, index) => {
+      ranks.set(playerId, 4 - index);
+    });
 
-    // 勝者（最後まで残ったプレイヤー）は1位
+    // 勝者（最後まで残ったプレイヤー）を1位に設定
     if (gameState.winner) {
       ranks.set(gameState.winner.id, 1);
     }
 
-    // まだゲームに残っているプレイヤーを確認（勝者を除く）
-    const remainingPlayers = playerStatuses
-      .filter(player => !player.isEliminated && (!gameState.winner || player.id !== gameState.winner.id))
-      .sort((a, b) => {
-        // 同じ状態の場合、プレイヤーIDで順序を安定させる
-        return a.id - b.id;
-      });
-    
-    // 残っているプレイヤーを2位から順に設定
-    remainingPlayers.forEach((player, index) => {
-      ranks.set(player.id, index + 2);  // 勝者が1位なので2位から開始
-    });
-
-    // 脱落したプレイヤーの順位を設定
-    const eliminatedPlayers = playerStatuses
-      .filter(player => player.isEliminated)
-      .sort((a, b) => {
-        // 後から脱落した順（eliminationOrderが大きい方が後）
-        if (a.eliminationOrder === -1) return 1;
-        if (b.eliminationOrder === -1) return -1;
-        return b.eliminationOrder - a.eliminationOrder;
-      });
-
-    // 次の順位は、残っているプレイヤー + 1位の次から開始
-    const nextRank = remainingPlayers.length + 2;  // 勝者(1) + 残りプレイヤー + 1
-    eliminatedPlayers.forEach((player, index) => {
-      if (!ranks.has(player.id)) {
-        ranks.set(player.id, nextRank + index);
-      }
-    });
-
-    console.log('=== 順位計算 ===');
-    console.log('脱落順:', gameState.eliminationOrder);
-    console.log('残っているプレイヤー:', remainingPlayers.map(p => p.name));
-    console.log('脱落したプレイヤー:', eliminatedPlayers.map(p => p.name));
+    console.log('=== 現在の順位状況 ===');
+    console.log('脱落順:', gameState.eliminationOrder.map(id => {
+      const player = gameState.players.find(p => p.id === id);
+      return player ? player.name : 'Unknown';
+    }));
     gameState.players.forEach(player => {
-      console.log(`${player.name}: ${ranks.get(player.id)}位`);
+      const rank = ranks.get(player.id);
+      console.log(`${player.name}: ${rank ? rank + '位' : '未定'}`);
     });
 
     return ranks;
@@ -912,14 +924,14 @@ function App() {
     return (
       <div className="player-stats">
         <div className={`player-rank ${rank === 1 ? 'first' : ''}`}>
-          {`${rank}位`}{rank === 1 && ' 👑'}
+          {rank ? `${rank}位${rank === 1 ? ' 👑' : ''}` : '未定'}
         </div>
         <h3>
           {player.name}
           {player.isComputer && (
             <span className="computer-info">
               ({getSkillLevelJP(player.skillLevel)} / {getPersonalityTypeJP(player.personalityType)})
-          </span>
+            </span>
           )}
         </h3>
         <div className="stats-item">
