@@ -68,28 +68,54 @@ function App() {
   };
 
   const getNextPlayerIndex = (currentIndex: number): number => {
+    console.log('=== DEBUG: Next Player Calculation ===');
+    console.log('Current Index:', currentIndex);
+    console.log('Current Player:', gameState.players[currentIndex]?.name);
+    
     let nextIndex = (currentIndex + 1) % gameState.players.length;
+    console.log('Initial Next Index:', nextIndex);
+    console.log('Initial Next Player:', gameState.players[nextIndex]?.name);
+    
     // 全てのカードが表になっているプレイヤーをスキップ
     while (gameState.players[nextIndex]?.cards.every(card => card.isRevealed)) {
-      nextIndex = (nextIndex + 1) % gameState.players.length;
-      // 一周してもプレイ可能なプレイヤーが見つからない場合は現在のインデックスを返す
-      if (nextIndex === currentIndex) {
-        return currentIndex;
-      }
+        console.log(`Player ${gameState.players[nextIndex]?.name} is skipped (all cards revealed)`);
+        nextIndex = (nextIndex + 1) % gameState.players.length;
+        console.log('New Next Index:', nextIndex);
+        console.log('New Next Player:', gameState.players[nextIndex]?.name);
+        
+        // 一周してもプレイ可能なプレイヤーが見つからない場合は現在のインデックスを返す
+        if (nextIndex === currentIndex) {
+            console.log('Completed full circle, returning current index');
+            return currentIndex;
+        }
     }
+    
+    console.log('Final Next Player:', gameState.players[nextIndex]?.name);
+    console.log('=== END DEBUG ===');
     return nextIndex;
   };
 
   const getNextTargetPlayerIndex = (currentIndex: number): number => {
-    let nextIndex = getNextPlayerIndex(currentIndex);
+    console.log('=== DEBUG: Next Target Player Calculation ===');
+    console.log('Current Index:', currentIndex);
+    
+    let nextIndex = (currentIndex + 1) % gameState.players.length;
+    let startIndex = nextIndex;
+    
     // 全てのカードが表になっているプレイヤーをスキップ
     while (gameState.players[nextIndex]?.cards.every(card => card.isRevealed)) {
-      nextIndex = getNextPlayerIndex(nextIndex);
-      // 一周してもプレイ可能なプレイヤーが見つからない場合は-1を返す（ゲーム終了）
-      if (nextIndex === currentIndex) {
-        return -1;
-      }
+        console.log(`Target Player ${gameState.players[nextIndex]?.name} is skipped (all cards revealed)`);
+        nextIndex = (nextIndex + 1) % gameState.players.length;
+        
+        // 一周してもプレイ可能なプレイヤーが見つからない場合は-1を返す（ゲーム終了）
+        if (nextIndex === startIndex) {
+            console.log('No valid target players found, game should end');
+            return -1;
+        }
     }
+    
+    console.log('Final Target Player:', gameState.players[nextIndex]?.name);
+    console.log('=== END DEBUG ===');
     return nextIndex;
   };
 
@@ -259,107 +285,84 @@ function App() {
     return players;
   };
 
-  // ゲーム終了の判定を更新
-  const checkGameEnd = (players: Player[]) => {
-    const playersWithUnrevealedCards = players.filter(player =>
-      player.cards.some(card => !card.isRevealed)
+  // 新しい状態チェック関数を追加
+  const checkGameState = (updatedPlayers: Player[], currentIndex: number): {
+    eliminationOrder: number[];
+    winner: Player | null;
+    gameStatus: 'waiting' | 'playing' | 'finished';
+    nextPlayerIndex: number;
+  } => {
+    console.log('=== DEBUG: Game State Check ===');
+    console.log('Current Index:', currentIndex);
+    console.log('Elimination Order:', gameState.eliminationOrder);
+
+    // 1. 脱落プレイヤーの確認と更新
+    const newlyEliminatedPlayers = updatedPlayers.filter(player => 
+        player.cards.every(card => card.isRevealed) && 
+        !gameState.eliminationOrder.includes(player.id)
     );
 
-    if (playersWithUnrevealedCards.length === 1) {
-      const winner = playersWithUnrevealedCards[0];
-      
-      // 脱落順を更新
-      const updatedEliminationOrder = [...gameState.eliminationOrder];
-      
-      // まだ脱落順に含まれていないプレイヤーを追加
-      const remainingPlayers = players.filter(player => 
-        player.id !== winner.id && 
-        !updatedEliminationOrder.includes(player.id)
-      );
-      
-      // 残りのプレイヤーを脱落順に追加（最後に脱落したプレイヤーから順に）
-      remainingPlayers.forEach(player => {
-        if (!updatedEliminationOrder.includes(player.id)) {
-          updatedEliminationOrder.push(player.id);
-        }
-      });
-
-      setGameState(prev => ({
-        ...prev,
-        gameStatus: 'finished',
-        winner: winner,
-        players,
-        currentPlayerIndex: prev.currentPlayerIndex,
-        logs: prev.logs,
-        eliminationOrder: updatedEliminationOrder
-      }));
+    let updatedEliminationOrder = [...gameState.eliminationOrder];
+    
+    if (newlyEliminatedPlayers.length > 0) {
+        console.log('Newly Eliminated Players:', newlyEliminatedPlayers.map(p => p.name));
+        newlyEliminatedPlayers.forEach(player => {
+            if (!updatedEliminationOrder.includes(player.id)) {
+                updatedEliminationOrder.push(player.id);
+            }
+        });
     }
+
+    // 2. ゲーム終了判定
+    const playersWithUnrevealedCards = updatedPlayers.filter(player =>
+        player.cards.some(card => !card.isRevealed)
+    );
+
+    let winner: Player | null = null;
+    let gameStatus: 'waiting' | 'playing' | 'finished' = 'playing';
+    
+    if (playersWithUnrevealedCards.length === 1) {
+        winner = playersWithUnrevealedCards[0];
+        gameStatus = 'finished';
+        
+        // 残りのプレイヤーを脱落順に追加
+        const remainingPlayers = updatedPlayers.filter(player => 
+            winner && player.id !== winner.id && 
+            !updatedEliminationOrder.includes(player.id)
+        );
+        
+        remainingPlayers.forEach(player => {
+            if (!updatedEliminationOrder.includes(player.id)) {
+                updatedEliminationOrder.push(player.id);
+            }
+        });
+    }
+
+    console.log('Updated Elimination Order:', updatedEliminationOrder);
+    console.log('Game Status:', gameStatus);
+    if (winner) console.log('Winner:', winner.name);
+    console.log('=== END DEBUG ===');
+
+    return {
+        eliminationOrder: updatedEliminationOrder,
+        winner,
+        gameStatus,
+        nextPlayerIndex: winner ? currentIndex : getNextPlayerIndex(currentIndex)
+    };
   };
 
-  // ターン終了時の処理を更新
+  // endTurn関数を更新
   const endTurn = (updatedPlayers: Player[]) => {
-    const nextIndex = getNextPlayerIndex(gameState.currentPlayerIndex);
-
-    // 現在のプレイヤーが全カード表向きになった場合、脱落順に追加
-    const currentPlayer = updatedPlayers[gameState.currentPlayerIndex];
-    if (currentPlayer.cards.every(card => card.isRevealed) && 
-        !gameState.eliminationOrder.includes(currentPlayer.id)) {
-      
-      // 脱落時のデバッグログを追加
-      console.log('Player Eliminated:', {
-        timestamp: new Date().toISOString(),
-        player: {
-          name: currentPlayer.name,
-          id: currentPlayer.id,
-          isComputer: currentPlayer.isComputer
-        },
-        gameState: {
-          currentTurn: {
-            index: gameState.currentPlayerIndex,
-            playerName: gameState.players[gameState.currentPlayerIndex].name
-          },
-          nextTurn: {
-            index: nextIndex,
-            playerName: gameState.players[nextIndex].name
-          }
-        },
-        eliminationOrder: {
-          current: gameState.eliminationOrder.map(id => ({
-            id,
-            name: gameState.players.find(p => p.id === id)?.name
-          })),
-          updated: [...gameState.eliminationOrder, currentPlayer.id].map(id => ({
-            id,
-            name: gameState.players.find(p => p.id === id)?.name
-          }))
-        },
-        lastAction: gameState.logs[gameState.logs.length - 1],
-        remainingPlayers: updatedPlayers
-          .filter(p => !p.cards.every(card => card.isRevealed))
-          .map(p => ({
-            id: p.id,
-            name: p.name,
-            unrevealedCards: p.cards.filter(c => !c.isRevealed).length
-          }))
-      });
-
-      const updatedEliminationOrder = [...gameState.eliminationOrder, currentPlayer.id];
-      
-      setGameState(prev => ({
-        ...prev,
-        players: updatedPlayers,
-        currentPlayerIndex: nextIndex,
-        eliminationOrder: updatedEliminationOrder
-      }));
-    } else {
-      setGameState(prev => ({
-        ...prev,
-        players: updatedPlayers,
-        currentPlayerIndex: nextIndex
-      }));
-    }
+    const stateUpdate = checkGameState(updatedPlayers, gameState.currentPlayerIndex);
     
-    checkGameEnd(updatedPlayers);
+    setGameState(prev => ({
+        ...prev,
+        players: updatedPlayers,
+        currentPlayerIndex: stateUpdate.nextPlayerIndex,
+        eliminationOrder: stateUpdate.eliminationOrder,
+        winner: stateUpdate.winner,
+        gameStatus: stateUpdate.gameStatus
+    }));
   };
 
   // ログを追加する関数
@@ -420,7 +423,16 @@ function App() {
       ).length === 1;
 
       if (isGameFinished) {
-        checkGameEnd(updatedPlayers);
+        const stateUpdate = checkGameState(updatedPlayers, gameState.currentPlayerIndex);
+        setGameState(prev => ({
+          ...prev,
+          gameStatus: stateUpdate.gameStatus,
+          winner: stateUpdate.winner,
+          players: updatedPlayers,
+          currentPlayerIndex: stateUpdate.nextPlayerIndex,
+          eliminationOrder: stateUpdate.eliminationOrder,
+          logs: updatedLogs
+        }));
       } else {
         setCorrectGuessPlayers(updatedPlayers);
         setShowContinueDialog(true);
@@ -458,34 +470,44 @@ function App() {
     setShowNumberDialog(false);
   };
 
-  // handleContinueChoice関数を修正
+  // handleContinueChoice関数を更新
   const handleContinueChoice = (shouldContinue: boolean) => {
-    const nextIndex = shouldContinue ? 
-      gameState.currentPlayerIndex : 
-      getNextPlayerIndex(gameState.currentPlayerIndex);
+    console.log('=== DEBUG: Continue Choice ===');
+    console.log('Current Player:', gameState.players[gameState.currentPlayerIndex].name);
+    console.log('Should Continue:', shouldContinue);
     
-    // 状態を更新
+    let nextIndex;
+    if (shouldContinue) {
+        nextIndex = gameState.currentPlayerIndex;
+    } else {
+        nextIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+        while (gameState.players[nextIndex]?.cards.every(card => card.isRevealed)) {
+            nextIndex = (nextIndex + 1) % gameState.players.length;
+            if (nextIndex === gameState.currentPlayerIndex) break;
+        }
+    }
+    
+    console.log('Next Player:', gameState.players[nextIndex].name);
+    console.log('=== END DEBUG ===');
+
+    const stateUpdate = checkGameState(correctGuessPlayers, nextIndex);
+    
     setGameState(prev => ({
-      ...prev,
-      players: correctGuessPlayers,
-      currentPlayerIndex: nextIndex,
-      logs: prev.logs.map((log, index) => 
-        index === prev.logs.length - 1 ? 
-        { ...log, willContinue: shouldContinue } : 
-        log
-      )
+        ...prev,
+        players: correctGuessPlayers,
+        currentPlayerIndex: nextIndex,
+        eliminationOrder: stateUpdate.eliminationOrder,
+        winner: stateUpdate.winner,
+        gameStatus: stateUpdate.gameStatus,
+        logs: prev.logs.map((log, index) => 
+            index === prev.logs.length - 1 ? 
+            { ...log, willContinue: shouldContinue } : 
+            log
+        )
     }));
 
     setShowContinueDialog(false);
     setCorrectGuessPlayers([]);
-    
-    // 次のプレイヤーに移る場合のみendTurnを呼び出す
-    if (!shouldContinue) {
-      endTurn(correctGuessPlayers);
-    } else {
-      // 続けて予想する場合は、ゲーム終了チェックのみ行う
-      checkGameEnd(correctGuessPlayers);
-    }
   };
 
   // 正解時の選択ダイアログコンポーネント
@@ -609,7 +631,16 @@ function App() {
       
       // 次のターゲットが見つからない場合（ゲーム終了）
       if (nextTargetIndex === -1) {
-        checkGameEnd(gameState.players);
+        const stateUpdate = checkGameState(gameState.players, gameState.currentPlayerIndex);
+        setGameState(prev => ({
+          ...prev,
+          gameStatus: stateUpdate.gameStatus,
+          winner: stateUpdate.winner,
+          players: prev.players,
+          currentPlayerIndex: stateUpdate.nextPlayerIndex,
+          eliminationOrder: stateUpdate.eliminationOrder,
+          logs: prev.logs
+        }));
         return;
       }
 
@@ -645,7 +676,7 @@ function App() {
               // 既に公開されているカードは除外
               if (!revealedCards.some(card => card.suit === suit && card.number === number)) {
                 possibleCards.push({ suit, number });
-              }
+                }
             }
           }
 
@@ -789,7 +820,7 @@ function App() {
                 {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
                 <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
               </div>
-              {log.isCorrect && !isGameFinished && log.willContinue !== undefined && (
+              {log.isCorrect && !isGameFinished && log.willContinue !== undefined && !(isLastLog && isGameFinished) && (
                 <div className="log-content continuation-status">
                   → {log.willContinue ? '続けて予想' : '次のプレイヤーに交代'}
                 </div>
@@ -806,20 +837,49 @@ function App() {
     if (!computerAction || !showComputerActionDialog) return null;
 
     const handleContinue = () => {
+      console.log('=== DEBUG: Computer Action Continue ===');
+      console.log('Current Player:', gameState.players[gameState.currentPlayerIndex].name);
+      console.log('Will Continue:', computerAction?.willContinue);
+      
+      let nextIndex;
+      if (computerAction?.willContinue) {
+          nextIndex = gameState.currentPlayerIndex;
+      } else {
+          nextIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+          while (gameState.players[nextIndex]?.cards.every(card => card.isRevealed)) {
+              nextIndex = (nextIndex + 1) % gameState.players.length;
+              if (nextIndex === gameState.currentPlayerIndex) break;
+          }
+      }
+      
+      console.log('Next Player:', gameState.players[nextIndex].name);
+      console.log('=== END DEBUG ===');
+
       // コンピューターの行動完了時にログを更新
       setGameState(prev => ({
-        ...prev,
-        logs: prev.logs.map((log, index) => 
-          index === prev.logs.length - 1 ? { ...log, willContinue: computerAction.willContinue } : log
-        ),
-        players: computerAction.updatedPlayers,
-        currentPlayerIndex: computerAction.nextPlayerIndex
+          ...prev,
+          logs: prev.logs.map((log, index) => 
+              index === prev.logs.length - 1 ? { ...log, willContinue: computerAction?.willContinue } : log
+          ),
+          players: computerAction?.updatedPlayers || prev.players,
+          currentPlayerIndex: nextIndex
       }));
       setShowComputerActionDialog(false);
       setSelectedCard(null);  // 選択状態をリセット
       
       // ゲーム終了判定
-      checkGameEnd(computerAction.updatedPlayers);
+      if (computerAction) {
+          const stateUpdate = checkGameState(computerAction.updatedPlayers, nextIndex);
+          setGameState(prev => ({
+              ...prev,
+              gameStatus: stateUpdate.gameStatus,
+              winner: stateUpdate.winner,
+              players: prev.players,
+              currentPlayerIndex: nextIndex,
+              eliminationOrder: stateUpdate.eliminationOrder,
+              logs: prev.logs
+          }));
+      }
     };
 
     useEffect(() => {
@@ -857,31 +917,26 @@ function App() {
   // プレイヤーの順位を計算する関数を更新
   const calculatePlayerRanks = () => {
     const ranks = new Map();
-    const TOTAL_PLAYERS = 4;
     
     // 勝者（最後まで残ったプレイヤー）は1位
     if (gameState.winner) {
       ranks.set(gameState.winner.id, 1);
     }
     
-    // 脱落順に基づいて順位を設定（最後に脱落したプレイヤーが2位）
-    const eliminationOrder = [...gameState.eliminationOrder];
-    
-    for (let i = eliminationOrder.length - 1; i >= 0; i--) {
-      const playerId = eliminationOrder[i];
-      if (playerId !== gameState.winner?.id) {
-        ranks.set(playerId, eliminationOrder.length - i + 1);
-      }
-    }
+    // 脱落順に基づいて順位を設定
+    // 最初に脱落（配列の最初の要素）が4位、最後に脱落（配列の最後の要素）が2位
+    gameState.eliminationOrder.forEach((playerId, index) => {
+      ranks.set(playerId, 4 - index);
+    });
 
     // デバッグ用のログ出力
-    console.log('Winner:', gameState.winner?.name);
-    console.log('Elimination Order:', gameState.eliminationOrder.map(id => 
-      gameState.players.find(p => p.id === id)?.name
-    ));
-    console.log('Ranks:', Array.from(ranks.entries()).map(([id, rank]) => 
-      `${gameState.players.find(p => p.id === id)?.name}: ${rank}位`
-    ));
+    console.log('Ranks:', {
+      winner: gameState.winner?.name,
+      eliminationOrder: gameState.eliminationOrder.map(id => ({
+        name: gameState.players.find(p => p.id === id)?.name,
+        rank: ranks.get(id)
+      }))
+    });
 
     return ranks;
   };
