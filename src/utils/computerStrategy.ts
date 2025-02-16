@@ -26,51 +26,69 @@ const isCardRevealed = (revealedCards: Card[], suit: Card['suit'], number: numbe
   return revealedCards.some(card => card.suit === suit && card.number === number);
 };
 
-// カードの位置に基づいて可能な数字の範囲を計算
+// カードの位置に基づいて可能な数字の範囲を取得する関数を改善
 const getPossibleNumberRange = (
-  cardIndex: number, 
-  player: Player,
-  allPlayers: Player[]
+  cardIndex: number,
+  targetPlayer: Player,
+  allPlayers: Player[],
+  skillLevel: Player['skillLevel'] = 'intermediate'
 ): { min: number; max: number } => {
-  const cards = player.cards;
-  let minNumber = 1;
-  let maxNumber = 13;
+  let min = 1;
+  let max = 13;
 
-  // 同じプレイヤーの公開カードから範囲を制限
-  let lastRevealedNumber = 0;
-  for (let i = 0; i < cards.length; i++) {
-    if (cards[i].isRevealed) {
-      if (i < cardIndex) {
-        // 対象より前の位置にある公開カードの数字以上でなければならない
-        // 同じ数字の異なるスートは許容
-        lastRevealedNumber = cards[i].number;
-        minNumber = Math.max(minNumber, lastRevealedNumber);
-      } else if (i > cardIndex) {
-        // 対象より後の位置にある公開カードの数字以下でなければならない
-        // 同じ数字の異なるスートは許容
-        maxNumber = Math.min(maxNumber, cards[i].number);
-      }
+  // 前のカードが公開されている場合、その数字以上でなければならない
+  for (let i = 0; i < cardIndex; i++) {
+    const card = targetPlayer.cards[i];
+    if (card.isRevealed) {
+      min = Math.max(min, card.number);
     }
   }
 
-  // デバッグ用のログ
-  console.log(`Card ${cardIndex + 1} range from revealed cards: ${minNumber} - ${maxNumber}`);
-  console.log(`Last revealed number before index: ${lastRevealedNumber}`);
+  // 後ろのカードが公開されている場合、その数字以下でなければならない
+  for (let i = cardIndex + 1; i < targetPlayer.cards.length; i++) {
+    const card = targetPlayer.cards[i];
+    if (card.isRevealed) {
+      max = Math.min(max, card.number);
+    }
+  }
 
-  return { min: minNumber, max: maxNumber };
+  // スキルレベルに応じて制約を適用
+  if (skillLevel === 'expert' || skillLevel === 'intermediate') {
+    // カードの位置に基づく理論的な範囲を考慮
+    const positionMin = Math.max(1, Math.floor((cardIndex) * 13 / targetPlayer.cards.length));
+    const positionMax = Math.min(13, Math.ceil((cardIndex + 1) * 13 / targetPlayer.cards.length));
+    
+    min = Math.max(min, positionMin);
+    max = Math.min(max, positionMax);
+  }
+
+  return { min, max };
 };
 
-// 既に公開されているカードと過去の予想結果から、ありえないカードを収集
-const getImpossibleCards = (gameState: GameState, targetPlayer: Player): Array<{ suit: Card['suit']; number: number }> => {
+// 既に公開されているカードと過去の予想結果から、ありえないカードを収集する関数を改善
+const getImpossibleCards = (
+  gameState: GameState,
+  targetPlayer: Player,
+  cardIndex: number,
+  skillLevel: Player['skillLevel'] = 'intermediate'
+): Array<{ suit: Card['suit']; number: number }> => {
   const impossibleCards: Array<{ suit: Card['suit']; number: number }> = [];
   
-  // 既に公開されているカードを追加
-  const revealedCards = getRevealedCards(gameState.players);
-  revealedCards.forEach(card => {
-    impossibleCards.push({ suit: card.suit, number: card.number });
+  // カードを除外する処理を修正
+  gameState.players.forEach(player => {
+    player.cards.forEach(card => {
+      // 現在のプレイヤーのカードは表裏に関係なく全て除外
+      if (player.id === gameState.currentPlayerIndex) {
+        impossibleCards.push({ suit: card.suit, number: card.number });
+      }
+      // 他のプレイヤーの公開されているカードを除外
+      else if (card.isRevealed) {
+        impossibleCards.push({ suit: card.suit, number: card.number });
+      }
+    });
   });
 
-  // 過去の不正解の予想から情報を収集
+  // 過去の不正解の予想から情報を収集（全レベル共通）
   gameState.logs
     .filter(log => log.targetPlayer === targetPlayer.name && !log.isCorrect)
     .forEach(log => {
@@ -79,6 +97,34 @@ const getImpossibleCards = (gameState: GameState, targetPlayer: Player): Array<{
         number: log.guessedNumber 
       });
     });
+
+  // カードの順序に基づく基本的な制約を適用（全レベル共通）
+  const { min, max } = getPossibleNumberRange(cardIndex, targetPlayer, gameState.players, skillLevel);
+  const suits: Card['suit'][] = ['hearts', 'diamonds', 'clubs', 'spades'];
+  
+  // 範囲外の数字を全て不可能なカードとして追加
+  for (let number = 1; number <= 13; number++) {
+    if (number < min || number > max) {
+      suits.forEach(suit => {
+        impossibleCards.push({ suit, number });
+      });
+    }
+  }
+
+  // 上級レベルの場合、より厳密な追加制約を適用
+  if (skillLevel === 'expert') {
+    // カードの位置に基づく理論的な範囲をより厳密に考慮
+    const positionMin = Math.max(1, Math.floor((cardIndex) * 13 / targetPlayer.cards.length));
+    const positionMax = Math.min(13, Math.ceil((cardIndex + 1) * 13 / targetPlayer.cards.length));
+    
+    for (let number = 1; number <= 13; number++) {
+      if (number < positionMin || number > positionMax) {
+        suits.forEach(suit => {
+          impossibleCards.push({ suit, number });
+        });
+      }
+    }
+  }
 
   return impossibleCards;
 };
@@ -200,7 +246,7 @@ const calculateCardProbabilities = (
   cardIndex: number,
   skillLevel: Player['skillLevel'] = 'intermediate'
 ): CardProbability[] => {
-  const impossibleCards = getImpossibleCards(gameState, targetPlayer);
+  const impossibleCards = getImpossibleCards(gameState, targetPlayer, cardIndex, skillLevel);
   const probabilities: CardProbability[] = [];
   const suits: Card['suit'][] = ['hearts', 'diamonds', 'clubs', 'spades'];
   const revealedCards = getRevealedCards(gameState.players);
@@ -210,7 +256,7 @@ const calculateCardProbabilities = (
   const cardHistory = guessHistory.get(playerKey) || [];
   
   // カードの位置に基づいて可能な数字の範囲を取得
-  const { min, max } = getPossibleNumberRange(cardIndex, targetPlayer, gameState.players);
+  const { min, max } = getPossibleNumberRange(cardIndex, targetPlayer, gameState.players, skillLevel);
   
   // 範囲が無効な場合は空の配列を返す
   if (min > max) {
@@ -224,11 +270,9 @@ const calculateCardProbabilities = (
 
   suits.forEach(suit => {
     possibleNumbers.forEach(number => {
-      // 既に他の位置で使用されているカードはスキップ
-      if (gameState.players.some(player =>
-        player.cards.some(card =>
-          card.isRevealed && card.suit === suit && card.number === number
-        )
+      // impossibleCardsに含まれるカードはスキップ
+      if (impossibleCards.some(card => 
+        card.suit === suit && card.number === number
       )) {
         return;
       }
@@ -239,11 +283,6 @@ const calculateCardProbabilities = (
         guess.number === number && 
         !guess.isCorrect
       )) {
-        return;
-      }
-
-      // 不可能なカードの組み合わせをスキップ
-      if (impossibleCards.some(card => card.suit === suit && card.number === number)) {
         return;
       }
 
