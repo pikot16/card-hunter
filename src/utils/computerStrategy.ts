@@ -315,36 +315,40 @@ const selectBestGuess = (
     throw new Error('No valid card probabilities available');
   }
 
-  // 確率でソート
-  const sorted = [...probabilities].sort((a, b) => b.probability - a.probability);
-  
-  // レベルに応じた選択プールのサイズを決定
-  const selectionRatio = {
-    beginner: 0.5,
-    intermediate: 0.2,
-    expert: 0.1
-  }[skillLevel || 'intermediate'];
-
-  const poolSize = Math.max(1, Math.ceil(sorted.length * selectionRatio));
-  const selectionPool = sorted.slice(0, poolSize);
-
-  // 確率に基づいた重み付き選択を実装
-  const totalWeight = selectionPool.reduce((sum, card) => sum + card.probability, 0);
-  let random = Math.random() * totalWeight;
-  
-  for (const card of selectionPool) {
-    random -= card.probability;
-    if (random <= 0) {
-      return {
-        suit: card.suit,
-        number: card.number
-      };
+  // 確率でソートする前に、同じ確率のカードをシャッフル
+  const shuffled = [...probabilities].sort((a, b) => {
+    if (a.probability === b.probability) {
+      // 同じ確率の場合はランダムに順序を決定
+      return Math.random() - 0.5;
     }
+    return b.probability - a.probability;
+  });
+
+  // スキルレベルに応じて選択
+  let selectionPool: CardProbability[];
+  switch (skillLevel) {
+    case 'expert':
+      // 最も確率の高いカードを選択
+      selectionPool = [shuffled[0]];
+      break;
+    case 'intermediate':
+      // 確率が最も高い2枚から選択
+      selectionPool = shuffled.slice(0, Math.min(2, shuffled.length));
+      break;
+    case 'beginner':
+      // 確率が最も高い3枚から選択
+      selectionPool = shuffled.slice(0, Math.min(3, shuffled.length));
+      break;
+    default:
+      selectionPool = [shuffled[0]];
   }
 
+  // 選択プールからランダムに1枚を選択
+  const selected = selectionPool[Math.floor(Math.random() * selectionPool.length)];
+
   return {
-    suit: selectionPool[0].suit,
-    number: selectionPool[0].number
+    suit: selected.suit,
+    number: selected.number
   };
 };
 
