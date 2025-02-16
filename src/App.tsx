@@ -656,7 +656,7 @@ function App() {
         // 選択したカードを設定
         setSelectedCard({ playerIndex: nextTargetIndex, cardIndex: randomCard.index });
 
-        const guess = computerGuess(gameState, nextPlayer, randomCard.index);
+        const guess = computerGuess(gameState, nextPlayer, randomCard.index, gameState.currentPlayerIndex);
         
         // guessがnullの場合は、まだ公開されていないカードの中からランダムに選択
         let fallbackGuess: { suit: 'hearts' | 'diamonds' | 'clubs' | 'spades'; number: number } | null = null;

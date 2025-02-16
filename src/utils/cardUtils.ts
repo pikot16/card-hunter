@@ -24,18 +24,35 @@ export const shuffleCards = (cards: Card[]): Card[] => {
 };
 
 // コンピュータの予想ロジック
-export const computerGuess = (gameState: GameState, targetPlayer: Player, targetCardIndex: number): { suit: Card['suit']; number: number } | null => {
+export const computerGuess = (
+  gameState: GameState, 
+  targetPlayer: Player, 
+  targetCardIndex: number,
+  guessingPlayerIndex: number  // 追加：予想を行うプレイヤーのインデックス
+): { suit: Card['suit']; number: number } | null => {
+  console.log('\n=== computerGuess関数開始 ===');
+  console.log('Current Player Index:', gameState.currentPlayerIndex);
+  console.log('Current Player:', gameState.players[gameState.currentPlayerIndex].name);
+  console.log('Target Player:', targetPlayer.name);
+  console.log('Card Index:', targetCardIndex);
+
+  // gameStateのcurrentPlayerIndexを予想を行うプレイヤーのインデックスに設定
+  const modifiedGameState = {
+    ...gameState,
+    currentPlayerIndex: guessingPlayerIndex
+  };
+
   // makeStrategicGuessを使用して予想を行う
-  const strategicGuess = makeStrategicGuess(gameState, targetPlayer, targetCardIndex);
+  const strategicGuess = makeStrategicGuess(modifiedGameState, targetPlayer, targetCardIndex);
   if (strategicGuess) {
     return strategicGuess;
   }
 
   // makeStrategicGuessが失敗した場合のフォールバック
-  // 全プレイヤーの公開済みカードを収集
-  const revealedCards = gameState.players.flatMap(player => 
+  // 全プレイヤーの公開済みカードと予想プレイヤーの全カードを収集
+  const excludedCards = gameState.players.flatMap(player => 
     player.cards
-      .filter(card => card.isRevealed)
+      .filter(card => card.isRevealed || player.id === guessingPlayerIndex)  // 予想プレイヤーの全カードを除外
       .map(card => ({ suit: card.suit, number: card.number }))
   );
 
@@ -45,16 +62,22 @@ export const computerGuess = (gameState: GameState, targetPlayer: Player, target
   
   for (let number = 1; number <= 13; number++) {
     for (const suit of suits) {
-      // 既に公開されているカードは除外
-      if (!revealedCards.some(card => card.suit === suit && card.number === number)) {
+      // 除外リストにないカードのみを追加
+      if (!excludedCards.some(card => card.suit === suit && card.number === number)) {
         possibleCards.push({ suit, number });
       }
     }
   }
 
+  console.log('=== フォールバック処理 ===');
+  console.log('除外されたカード:', excludedCards);
+  console.log('可能なカード:', possibleCards);
+
   // 可能なカードがある場合はランダムに1つ選択
   if (possibleCards.length > 0) {
-    return possibleCards[Math.floor(Math.random() * possibleCards.length)];
+    const selectedCard = possibleCards[Math.floor(Math.random() * possibleCards.length)];
+    console.log('選択されたカード:', selectedCard);
+    return selectedCard;
   }
 
   return null;

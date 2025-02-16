@@ -63,8 +63,10 @@ export const GameLogs: React.FC<GameLogsProps> = ({ logs }) => {
                     {log.isCorrect ? '○' : '×'}
                   </span>
                 </div>
-                {log.isCorrect && log.willContinue && (
-                  <div className="continue-indicator">続けて予想</div>
+                {log.isCorrect && log.willContinue !== undefined && (
+                  <div className="log-content continuation-status">
+                    {!isGameFinished && `→ ${log.willContinue ? '続けて予想' : '次のプレイヤーに交代'}`}
+                  </div>
                 )}
               </div>
             </div>

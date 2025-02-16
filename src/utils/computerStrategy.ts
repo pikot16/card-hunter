@@ -7,13 +7,6 @@ interface CardProbability {
   probability: number;
 }
 
-// スキルレベルに基づく確率調整係数
-const SKILL_LEVEL_FACTORS = {
-  beginner: 0.3,    // 30%の精度
-  intermediate: 0.6, // 60%の精度
-  expert: 0.95       // 95%の精度に引き上げ
-};
-
 // 既に公開されているカードを収集
 const getRevealedCards = (players: Player[]): Card[] => {
   return players.flatMap(player => 
@@ -52,16 +45,6 @@ const getPossibleNumberRange = (
     }
   }
 
-  // スキルレベルに応じて制約を適用
-  if (skillLevel === 'expert' || skillLevel === 'intermediate') {
-    // カードの位置に基づく理論的な範囲を考慮
-    const positionMin = Math.max(1, Math.floor((cardIndex) * 13 / targetPlayer.cards.length));
-    const positionMax = Math.min(13, Math.ceil((cardIndex + 1) * 13 / targetPlayer.cards.length));
-    
-    min = Math.max(min, positionMin);
-    max = Math.min(max, positionMax);
-  }
-
   return { min, max };
 };
 
@@ -74,19 +57,28 @@ const getImpossibleCards = (
 ): Array<{ suit: Card['suit']; number: number }> => {
   const impossibleCards: Array<{ suit: Card['suit']; number: number }> = [];
   
+  console.log('=== DEBUG: getImpossibleCards ===');
+  console.log('Current Player Index:', gameState.currentPlayerIndex);
+  console.log('Current Player:', gameState.players[gameState.currentPlayerIndex].name);
+  console.log('Target Player:', targetPlayer.name);
+  
   // カードを除外する処理を修正
   gameState.players.forEach(player => {
     player.cards.forEach(card => {
       // 現在のプレイヤーのカードは表裏に関係なく全て除外
-      if (player.id === gameState.currentPlayerIndex) {
+      if (player === gameState.players[gameState.currentPlayerIndex]) {
+        console.log(`Excluding card ${card.suit} ${card.number} from ${player.name} (current player)`);
         impossibleCards.push({ suit: card.suit, number: card.number });
       }
       // 他のプレイヤーの公開されているカードを除外
       else if (card.isRevealed) {
+        console.log(`Excluding revealed card ${card.suit} ${card.number} from ${player.name}`);
         impossibleCards.push({ suit: card.suit, number: card.number });
       }
     });
   });
+  
+  console.log('=== END DEBUG ===');
 
   // 過去の不正解の予想から情報を収集（全レベル共通）
   gameState.logs
@@ -108,21 +100,6 @@ const getImpossibleCards = (
       suits.forEach(suit => {
         impossibleCards.push({ suit, number });
       });
-    }
-  }
-
-  // 上級レベルの場合、より厳密な追加制約を適用
-  if (skillLevel === 'expert') {
-    // カードの位置に基づく理論的な範囲をより厳密に考慮
-    const positionMin = Math.max(1, Math.floor((cardIndex) * 13 / targetPlayer.cards.length));
-    const positionMax = Math.min(13, Math.ceil((cardIndex + 1) * 13 / targetPlayer.cards.length));
-    
-    for (let number = 1; number <= 13; number++) {
-      if (number < positionMin || number > positionMax) {
-        suits.forEach(suit => {
-          impossibleCards.push({ suit, number });
-        });
-      }
     }
   }
 
@@ -305,9 +282,6 @@ const calculateCardProbabilities = (
         gameState.players
       );
 
-      // スキルレベルによる調整
-      probability *= SKILL_LEVEL_FACTORS[skillLevel || 'intermediate'];
-
       // 確率が0より大きい場合のみ追加
       if (probability > 0) {
         probabilities.push({ suit, number, probability });
@@ -344,22 +318,7 @@ const selectBestGuess = (
   // 確率でソート
   const sorted = [...probabilities].sort((a, b) => b.probability - a.probability);
   
-  // 上級レベルの場合は、確率が極端に低い選択肢を除外
-  if (skillLevel === 'expert') {
-    const topProbability = sorted[0].probability;
-    // 最高確率の1%未満の確率の選択肢は除外
-    const viableChoices = sorted.filter(card => 
-      card.probability >= topProbability * 0.01
-    );
-    
-    // 残った選択肢の中から、最も確率の高いものを選択
-    return {
-      suit: viableChoices[0].suit,
-      number: viableChoices[0].number
-    };
-  }
-
-  // その他のレベルは従来の選択方法を使用（変更なし）
+  // レベルに応じた選択プールのサイズを決定
   const selectionRatio = {
     beginner: 0.5,
     intermediate: 0.2,
@@ -398,7 +357,10 @@ export const makeStrategicGuess = (
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
   console.log(`\n=== コンピュータの予想開始 ===`);
   console.log(`予想プレイヤー: ${currentPlayer.name} (${currentPlayer.skillLevel})`);
+  console.log(`予想プレイヤーのインデックス: ${gameState.currentPlayerIndex}`);
+  console.log(`予想プレイヤーのID: ${currentPlayer.id}`);
   console.log(`対象プレイヤー: ${targetPlayer.name}`);
+  console.log(`対象プレイヤーのID: ${targetPlayer.id}`);
   console.log(`対象カード: ${cardIndex + 1}番目`);
   
   try {
