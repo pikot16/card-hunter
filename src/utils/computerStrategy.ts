@@ -451,4 +451,94 @@ export const decideToContinue = (player: Player, gameState: GameState): boolean 
 
   // 確率に基づいて決定
   return Math.random() < finalProbability;
+};
+
+// カードの位置選択のための確率計算
+const calculatePositionProbabilities = (
+  targetPlayer: Player,
+  gameState: GameState,
+  skillLevel: Player['skillLevel']
+): { index: number; probability: number }[] => {
+  const unrevealedCards = targetPlayer.cards
+    .map((card, index) => ({ card, index }))
+    .filter(item => !item.card.isRevealed);
+
+  if (unrevealedCards.length === 0) {
+    return [];
+  }
+
+  // 各位置の基本確率を計算
+  return unrevealedCards.map(({ index }) => {
+    let probability = 1.0;
+
+    // 1. 公開カードに隣接する未公開カードを評価
+    const isAdjacentToRevealedCard = (() => {
+      const prevRevealed = index > 0 && targetPlayer.cards[index - 1].isRevealed;
+      const nextRevealed = index < targetPlayer.cards.length - 1 && targetPlayer.cards[index + 1].isRevealed;
+      return prevRevealed || nextRevealed;
+    })();
+
+    // 公開カードに隣接する場合、確率を上げる
+    if (isAdjacentToRevealedCard) {
+      probability *= 1.5;
+    }
+
+    // 2. 両隣のカードが公開済みの場合、より確実な予測が可能
+    const hasBothNeighborsRevealed = (() => {
+      const prevRevealed = index > 0 && targetPlayer.cards[index - 1].isRevealed;
+      const nextRevealed = index < targetPlayer.cards.length - 1 && targetPlayer.cards[index + 1].isRevealed;
+      return prevRevealed && nextRevealed;
+    })();
+
+    if (hasBothNeighborsRevealed) {
+      probability *= 2.0;
+    }
+
+    // 3. 端のカードは数字が予測しやすい
+    if (index === 0 || index === targetPlayer.cards.length - 1) {
+      probability *= 2.0;
+    }
+
+    // スキルレベルに応じて確率を調整
+    switch (skillLevel) {
+      case 'expert':
+        // 確率をそのまま使用（計算された戦略的な選択）
+        break;
+      case 'intermediate':
+        // 中級でも確率をそのまま使用
+        break;
+      case 'beginner':
+        // 初級でも確率をそのまま使用
+        break;
+    }
+
+    return { index, probability };
+  });
+};
+
+// 位置を選択する関数
+export const selectCardPosition = (
+  targetPlayer: Player,
+  gameState: GameState,
+  skillLevel: Player['skillLevel']
+): number | null => {
+  const probabilities = calculatePositionProbabilities(targetPlayer, gameState, skillLevel);
+  
+  if (probabilities.length === 0) {
+    return null;
+  }
+
+  // 確率に基づいて位置を選択
+  const totalProbability = probabilities.reduce((sum, item) => sum + item.probability, 0);
+  let random = Math.random() * totalProbability;
+  
+  for (const item of probabilities) {
+    random -= item.probability;
+    if (random <= 0) {
+      return item.index;
+    }
+  }
+
+  // フォールバック：最後の位置を返す
+  return probabilities[probabilities.length - 1].index;
 }; 
