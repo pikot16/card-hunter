@@ -5,7 +5,7 @@ import { GameState, Player, Card as CardType, GameLog, CardNumber } from './type
 import { shuffleCards, getDisplayNumber, computerGuess } from './utils/cardUtils'
 import { playCorrectSound, playIncorrectSound } from './utils/soundUtils'
 import Card from './components/Card'
-import { decideToContinue } from './utils/computerStrategy'
+import { decideToContinue, selectCardPosition } from './utils/computerStrategy'
 import { runTest } from './utils/runAITest'
 import { stopTest } from './utils/aiTest'
 
@@ -646,17 +646,14 @@ function App() {
 
       const nextPlayer = gameState.players[nextTargetIndex];
       
-      // 表になっていないカードのインデックスを取得
-      const unrevealedCards = nextPlayer.cards
-        .map((card, index) => ({ card, index }))
-        .filter(item => !item.card.isRevealed);
+      // 戦略的に位置を選択
+      const selectedPosition = selectCardPosition(nextPlayer, gameState, currentPlayer.skillLevel);
       
-      if (unrevealedCards.length > 0) {
-        const randomCard = unrevealedCards[Math.floor(Math.random() * unrevealedCards.length)];
+      if (selectedPosition !== null) {
         // 選択したカードを設定
-        setSelectedCard({ playerIndex: nextTargetIndex, cardIndex: randomCard.index });
+        setSelectedCard({ playerIndex: nextTargetIndex, cardIndex: selectedPosition });
 
-        const guess = computerGuess(gameState, nextPlayer, randomCard.index, gameState.currentPlayerIndex);
+        const guess = computerGuess(gameState, nextPlayer, selectedPosition, gameState.currentPlayerIndex);
         
         // guessがnullの場合は、まだ公開されていないカードの中からランダムに選択
         let fallbackGuess: { suit: 'hearts' | 'diamonds' | 'clubs' | 'spades'; number: number } | null = null;
@@ -698,7 +695,7 @@ function App() {
           return;
         }
 
-        const targetCard = nextPlayer.cards[randomCard.index];
+        const targetCard = nextPlayer.cards[selectedPosition];
         const isCorrect = targetCard.number === finalGuess.number && targetCard.suit === finalGuess.suit;
 
         // 効果音を再生（正解/不正解に応じて）
@@ -711,14 +708,14 @@ function App() {
         const updatedPlayers = [...gameState.players];
         const updatedLogs = addLog(
           updatedPlayers,
-          randomCard.index,
+          selectedPosition,
           finalGuess.suit,
           finalGuess.number,
           isCorrect
         );
 
         if (isCorrect) {
-          updatedPlayers[nextTargetIndex].cards[randomCard.index].isRevealed = true;
+          updatedPlayers[nextTargetIndex].cards[selectedPosition].isRevealed = true;
           
           // コンピュータープレイヤーの決定
           const willContinue = decideToContinue(currentPlayer, gameState);
@@ -727,7 +724,7 @@ function App() {
           setComputerAction({
             player: currentPlayer.name,
             targetPlayer: nextPlayer.name,
-            cardIndex: randomCard.index,
+            cardIndex: selectedPosition,
             guessedCard: finalGuess,
             isCorrect,
             updatedPlayers,
@@ -754,7 +751,7 @@ function App() {
             // 選択したカードと表にするカードの両方を設定
             setSelectedCard({
               playerIndex: nextTargetIndex,
-              cardIndex: randomCard.index,
+              cardIndex: selectedPosition,
               revealedCardIndex: randomOwnCard.index,
               revealedPlayerIndex: gameState.currentPlayerIndex
             });
@@ -764,7 +761,7 @@ function App() {
           setComputerAction({
             player: currentPlayer.name,
             targetPlayer: nextPlayer.name,
-            cardIndex: randomCard.index,
+            cardIndex: selectedPosition,
             guessedCard: finalGuess,
             isCorrect,
             updatedPlayers,
@@ -883,6 +880,20 @@ function App() {
     };
 
     useEffect(() => {
+      // コンピューターの予想が正解で、かつゲームが終了する場合は自動的に処理を進める
+      if (computerAction.isCorrect) {
+        // 裏向きのカードを持っているプレイヤーの数を数える
+        const playersWithUnrevealedCards = computerAction.updatedPlayers.filter(player =>
+          player.cards.some(card => !card.isRevealed)
+        ).length;
+
+        // プレイヤーが1人だけ残っている場合（＝ゲーム終了）
+        if (playersWithUnrevealedCards === 1) {
+          handleContinue();
+          return;
+        }
+      }
+
       const handleKeyPress = (e: KeyboardEvent) => {
         if (e.code === 'Space' || e.code === 'Enter') {
           e.preventDefault();
