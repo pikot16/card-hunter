@@ -802,29 +802,25 @@ function App() {
         {showComputerActionDialog && ' (Space / Enter で次へ)'}
       </h3>
       <div className="logs-container">
-        {gameState.logs.slice().reverse().map((log, index) => {
-          const isLastLog = index === 0;
-          const isGameFinished = gameState.gameStatus === 'finished';
-          
-          return (
-            <div key={log.timestamp} className={`log-item ${log.isCorrect ? 'correct' : 'incorrect'}`}>
-              <div className="log-header">
-                <span className="log-number">{gameState.logs.length - index}.</span>
-                <span className="player-name">{log.guessingPlayer}</span>が
-                <span className="player-name">{log.targetPlayer}</span>の
-              </div>
-              <div className="log-content">
-                {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
-                <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
-              </div>
-              {log.isCorrect && !isGameFinished && log.willContinue !== undefined && !(isLastLog && isGameFinished) && (
-                <div className="log-content continuation-status">
-                  → {log.willContinue ? '続けて予想' : '次のプレイヤーに交代'}
-                </div>
-              )}
+        {gameState.logs.slice().reverse().map((log, index) => (
+          <div key={log.timestamp} className={`log-item ${log.isCorrect ? 'correct' : 'incorrect'}`}>
+            <div className="log-header">
+              <span className="log-number">{gameState.logs.length - index}.</span>
+              <span className="player-name">{log.guessingPlayer}</span>が
+              <span className="player-name">{log.targetPlayer}</span>の
             </div>
-          );
-        })}
+            <div className="log-content">
+              {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
+              <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
+            </div>
+            {log.isCorrect && log.willContinue !== undefined && 
+              (gameState.gameStatus !== 'finished' || index !== 0) && (
+              <div className="log-content continuation-status">
+                → {log.willContinue ? '続けて予想' : '次のプレイヤーに交代'}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -1287,7 +1283,8 @@ function App() {
                         {log.cardIndex + 1}枚目のカードを{getDisplayCard(log.guessedSuit, log.guessedNumber)}と予想
                         <span className="result-symbol">{log.isCorrect ? '○' : '×'}</span>
                       </div>
-                      {log.isCorrect && log.willContinue !== undefined && (
+                      {log.isCorrect && log.willContinue !== undefined && 
+                        (gameState.gameStatus !== 'finished' || index !== 0) && (
                         <div className="log-content continuation-status">
                           → {log.willContinue ? '続けて予想' : '次のプレイヤーに交代'}
                         </div>
