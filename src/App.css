@@ -203,6 +203,7 @@
   transition: all 0.2s;
   overflow: hidden;
   position: relative;
+  z-index: 1;
 }
 
 .playing-card:hover {
@@ -258,6 +259,10 @@
   background-color: #2e7d32;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 2;
+  /* width: 100%; */
+  /* overflow: hidden; */
+  margin-right: 8px;
 }
 
 .player-section h2 {
@@ -266,6 +271,14 @@
   font-size: 0.9em;
   opacity: 0.7;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
+  z-index: 1;
 }
 
 .player-section .current-player,
@@ -275,10 +288,91 @@
   font-size: 1.1em;
   font-weight: bold;
   text-shadow: 0 0 10px rgba(139, 195, 74, 0.5);
-  background-color: rgba(139, 195, 74, 0.2);
+  background-color: rgba(139, 195, 74, 0.3);
   padding: 2px 6px;
   border-radius: 4px;
   border-left: 4px solid #8bc34a;
+  border-right: 4px solid #8bc34a;
+  display: block;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.help-icon {
+  font-size: 20px;
+  cursor: help;
+  position: relative;
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  z-index: 3;
+}
+
+.help-icon .tooltip {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 10px;
+  background-color: rgba(26, 26, 26, 0.95);
+  color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  width: 200px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid #4a4a4a;
+  z-index: 9999;
+}
+
+.help-icon:hover .tooltip {
+  display: block;
+}
+
+.help-icon .tooltip::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 8px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid rgba(26, 26, 26, 0.95);
+}
+
+.help-icon .tooltip h4 {
+  color: #8bc34a;
+  margin: 0 0 10px 0;
+  font-size: 15px;
+}
+
+.help-icon .tooltip ul {
+  margin: 0;
+  padding: 0px 15px;
+  list-style-type: none;
+}
+
+.help-icon .tooltip li {
+  margin: 6px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: normal;
+}
+
+.help-icon .tooltip .key {
+  background-color: #2d2d2d;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-left: 8px;
+  font-family: monospace;
+  border: 1px solid #4a4a4a;
+  color: #8bc34a;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
 }
 
 .card-container {
@@ -306,9 +400,11 @@
 }
 
 .key-hint {
-  font-size: 12px;
-  opacity: 0.7;
+  display: block;
+  font-size: 16px;
   font-weight: normal;
+  font-family: 'Arial', sans-serif;
+  opacity: 0.8;
   margin-top: 2px;
 }
 
@@ -328,24 +424,39 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* 数字選択ダイアログの場合は横幅を少し広げる */
+.guess-dialog:has(.selected-suit) {
+  width: 350px;
+}
+
 .dialog-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 20px;
   cursor: move;
   user-select: none;
+  position: relative;
 }
 
 .dialog-header h3 {
   margin: 0;
   color: #ffffff;
-  flex: 1;
+  text-align: center;
+}
+
+.dialog-header .drag-handle {
+  position: absolute;
+  right: 0;
+  color: #666;
+  font-size: 20px;
+  padding: 0 10px;
+  cursor: move;
+  user-select: none;
 }
 
 .dialog-header .help-icon {
   font-size: 20px;
-  color: #666;
   margin-right: 10px;
   cursor: help;
   position: relative;
@@ -355,66 +466,17 @@
   display: block;
 }
 
-.tooltip {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 10px;
-  background-color: #333;
-  color: #fff;
-  padding: 15px;
-  border-radius: 8px;
-  width: 280px;
-  font-size: 14px;
-  z-index: 1000;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.tooltip::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  right: 8px;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid #333;
-}
-
-.tooltip ul {
-  margin: 0;
-  padding-left: 20px;
-  list-style-type: none;
-}
-
-.tooltip li {
-  margin: 8px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.tooltip .key {
-  background-color: #555;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-  font-family: monospace;
-}
-
-.drag-handle {
-  color: #666;
-  font-size: 20px;
-  padding: 0 10px;
-  cursor: move;
-  user-select: none;
-}
-
 .guess-buttons {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-bottom: 15px;
+  justify-content: center;
+}
+
+/* 数字選択ダイアログのボタン配置を5列に */
+.guess-dialog:has(.selected-suit) .guess-buttons {
+  grid-template-columns: repeat(5, 1fr);
 }
 
 .guess-buttons button {
