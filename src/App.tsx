@@ -395,7 +395,7 @@ function App() {
     const updatedPlayers = [...gameState.players];
     const isCorrect = targetCard.number === guessedNumber && targetCard.suit === selectedSuit;
 
-    // ログを追加（正解時は willContinue を設定しない）
+    // ログを追加
     const updatedLogs = [...gameState.logs, {
       guessingPlayer: currentPlayer.name,
       targetPlayer: targetPlayer.name,
@@ -423,7 +423,6 @@ function App() {
       ).length === 1;
 
       if (isGameFinished) {
-        const stateUpdate = checkGameState(updatedPlayers, gameState.currentPlayerIndex);
         // ゲーム終了時はComputerActionDialogを使用
         setComputerAction({
           player: currentPlayer.name,
@@ -432,20 +431,10 @@ function App() {
           guessedCard: { suit: selectedSuit, number: guessedNumber },
           isCorrect: true,
           updatedPlayers,
-          nextPlayerIndex: stateUpdate.nextPlayerIndex,
+          nextPlayerIndex: getNextPlayerIndex(gameState.currentPlayerIndex),
           willContinue: false  // ゲーム終了時は常にfalse
         });
         setShowComputerActionDialog(true);
-        
-        setGameState(prev => ({
-          ...prev,
-          gameStatus: stateUpdate.gameStatus,
-          winner: stateUpdate.winner,
-          players: updatedPlayers,
-          currentPlayerIndex: stateUpdate.nextPlayerIndex,
-          eliminationOrder: stateUpdate.eliminationOrder,
-          logs: updatedLogs
-        }));
       } else {
         setCorrectGuessPlayers(updatedPlayers);
         setShowContinueDialog(true);
@@ -850,7 +839,8 @@ function App() {
     <div className="game-logs">
       <h3>
         ゲーム履歴
-        {showComputerActionDialog && ' (Space / Enter で次へ)'}
+        {gameState.gameStatus === 'finished' && gameState.logs[gameState.logs.length - 1]?.isCorrect && 
+          ' (Space / Enter で次へ)'}
       </h3>
       <div className="logs-container">
         {gameState.logs.slice().reverse().map((log, index) => (
@@ -1112,9 +1102,38 @@ function App() {
     </div>
   );
 
+  // キーボードショートカットのヘルプコンポーネント
+  const CardSelectionHelp = () => (
+    <div className="help-icon">
+      ℹ️
+      <div className="tooltip">
+        <h4>キーボードショートカット</h4>
+        <ul>
+          <li>1-9枚目 <span className="key">1</span>-<span className="key">9</span></li>
+          <li>10枚目 <span className="key">0</span></li>
+          <li>11枚目 <span className="key">J</span></li>
+          <li>12枚目 <span className="key">Q</span></li>
+          <li>13枚目 <span className="key">K</span></li>
+        </ul>
+      </div>
+    </div>
+  );
+
   // グローバルなキーボードイベントハンドラー
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ゲーム終了時の処理
+      if (gameState.gameStatus === 'finished' && gameState.logs[gameState.logs.length - 1]?.isCorrect) {
+        if (e.code === 'Space' || e.code === 'Enter') {
+          e.preventDefault();
+          setGameState(prev => ({
+            ...prev,
+            showEndScreen: true
+          }));
+          return;
+        }
+      }
+
       // ダイアログ表示中の処理
       if (showSuitDialog) {
         switch (e.key.toLowerCase()) {
@@ -1196,23 +1215,6 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameState, isSelectingOwnCard, showSuitDialog, showNumberDialog, showContinueDialog, selectedSuit]);
-
-  // キーボードショートカットのヘルプコンポーネント
-  const CardSelectionHelp = () => (
-    <div className="help-icon">
-      ℹ️
-      <div className="tooltip">
-        <h4>キーボードショートカット</h4>
-        <ul>
-          <li>1-9枚目 <span className="key">1</span>-<span className="key">9</span></li>
-          <li>10枚目 <span className="key">0</span></li>
-          <li>11枚目 <span className="key">J</span></li>
-          <li>12枚目 <span className="key">Q</span></li>
-          <li>13枚目 <span className="key">K</span></li>
-        </ul>
-      </div>
-    </div>
-  );
 
   // ダイアログ外クリックのハンドラーを追加
   useEffect(() => {
