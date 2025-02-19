@@ -121,7 +121,7 @@ function App() {
 
   const handleCardSelect = (playerIndex: number, cardIndex: number) => {
     // ダイアログ表示中は新しいカードの選択を無効化
-    if (showSuitDialog || showNumberDialog) {
+    if (showSuitDialog || showNumberDialog || showContinueDialog) {
       return;
     }
 
@@ -1214,6 +1214,25 @@ function App() {
     </div>
   );
 
+  // ダイアログ外クリックのハンドラーを追加
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      // showContinueDialogがtrueの場合は何もしない（このダイアログは外クリックで閉じない）
+      if (showContinueDialog) return;
+
+      // スート予想ダイアログまたは数字予想ダイアログが表示されている場合のみ処理
+      if (showSuitDialog || showNumberDialog) {
+        const dialogElement = dialogRef;
+        if (dialogElement && !dialogElement.contains(e.target as Node)) {
+          handleCancelSelection();
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showSuitDialog, showNumberDialog, showContinueDialog, dialogRef]);
+
   return (
     <div className="game-container">
       <div className="game-main">
@@ -1224,47 +1243,82 @@ function App() {
             <div className="game-rules">
               <h2>ゲームのルール</h2>
               <div className="rules-content">
-                <h3>ゲームの目的</h3>
-                <p>自分のカードを守り抜き、最後まで残ったプレイヤーが勝者となります！</p>
+                <h3>ゲームの概要</h3>
+                <ul>
+                  <li>プレイヤー人数: 4人（あなた＆コンピューター3人）</li>
+                  <li>推定プレイ時間: 5-10分</li>
+                  <li>対象年齢: 6歳以上</li>
+                  <li>使用カード: トランプ52枚（ジョーカーなし）</li>
+                </ul>
                 
-                <h3>ゲームの進め方</h3>
+                <h3>ゲームの目的</h3>
+                <ul>
+                  <li>相手のカードを予想して表にしながら、自分のカードをできるだけ裏向きのまま保ちます。</li>
+                  <li>最後まで裏向きのカードを持っているプレイヤーが勝者となります！</li>
+                </ul>
+                
+                <h3>ゲームの準備</h3>
                 <ol>
-                  <li>各プレイヤーは13枚のトランプカードを配られます（Jokerは無し）
+                  <li>シャッフルしたカードを各プレイヤーに13枚ずつ配ります</li>
+                  <li>配られたカードは自動的に数字順に並びます（A=1, J=11, Q=12, K=13）</li>
+                  <li>自分のカードは見ることができますが、他のプレイヤーのカードは初めは全て裏向きです</li>
+                </ol>
+
+                <h3>ターンの進め方</h3>
+                <ol>
+                  <li>予想フェーズ
                     <ul>
-                      <li>カードは数字順に並んでいます</li>
-                      <li>自分のカードは見ることができますが、他のプレイヤーのカードは裏向きです</li>
+                      <li>次のプレイヤーの裏向きのカードを1枚選びます</li>
+                      <li>選んだカードの「スート（♥♦♣♠）」と「数字（A-K）」を予想します</li>
+                      <li>例: 「6番目のカードは♥7です」</li>
                     </ul>
                   </li>
-                  <li>プレイヤー1から順番に次のプレイヤーのカードを予想します
+                  <li>結果フェーズ
                     <ul>
-                      <li>予想するカードを選び、そのカードの「スート（マーク）」と「数字」の両方を当てます</li>
-                      <li>例：6番目のカードを「ハート（♥）の7」と予想</li>
-                    </ul>
-                  </li>
-                  <li>予想が当たった場合：
-                    <ul>
-                      <li>予想した相手のカードが表向きになります</li>
-                      <li>続けて相手のカードを予想するか、次のプレイヤーにターンを回すかを選択できます</li>
-                    </ul>
-                  </li>
-                  <li>予想が外れた場合：
-                    <ul>
-                      <li>裏になっている自分のカードから1枚選んで表向きにしなければなりません</li>
-                      <li>その後、次のプレイヤーのターンになります</li>
+                      <li>予想が当たった場合：
+                        <ul>
+                          <li>予想したカードが表向きになります</li>
+                          <li>2つの選択肢があります:
+                            <ol>
+                              <li>カードの予想を続ける</li>
+                              <li>次のプレイヤーにターンを回す</li>
+                            </ol>
+                          </li>
+                        </ul>
+                      </li>
+                      <li>予想が外れた場合：
+                        <ul>
+                          <li>自分の裏向きのカードを1枚選んで表にします</li>
+                          <li>次のプレイヤーのターンになります</li>
+                        </ul>
+                      </li>
                     </ul>
                   </li>
                 </ol>
 
-                <h3>ゲーム終了と順位</h3>
+                <h3>ゲームの終了</h3>
                 <ul>
-                  <li>全てのカードが表向きになったプレイヤーから順に脱落となります</li>
+                  <li>全てのカードが表向きになったプレイヤーから順に脱落です</li>
                   <li>最後まで裏向きのカードを持っているプレイヤーが1位となります</li>
+                </ul>
+
+                {/* <h3>プレイのコツ</h3>
+                <ul>
+                  <li>既に表になっているカードの情報を元に裏のカードを推理しましょう</li>
+                  <li>過去の予想結果も推理に役立ちます</li>
+                  <li>予想を続けるか回すかの判断も重要です</li>
+                </ul> */}
+
+                <h3>キーボードショートカット</h3>
+                <ul>
+                  <li>ℹ️アイコンにカーソルを合わせるとキーボードショートカットのヘルプが表示されます</li>
+                  <li>（　　）内に表示されているキーを押すと、その機能を実行できます</li>
                 </ul>
               </div>
             </div>
 
             <div className="player-input">
-              <label htmlFor="player-name">あなたの名前 (10文字以内)</label>
+              <label htmlFor="player-name">あなたの名前（10文字以内）</label>
               <input
                 id="player-name"
                 type="text"
@@ -1310,14 +1364,14 @@ function App() {
             <div className="players-list">
               <h2>参加プレイヤー:</h2>
               <div className="player-item">
-                {playerName || 'プレイヤー1'} (あなた)
+                {playerName || 'プレイヤー1'}（あなた）
               </div>
               {[1, 2, 3].map(id => (
                 <div key={id} className="player-item">
-                  Computer {id} ({computerSettings[id].skillLevel === 'beginner' ? '初級' : 
+                  Computer {id}（{computerSettings[id].skillLevel === 'beginner' ? '初級' : 
                                computerSettings[id].skillLevel === 'intermediate' ? '中級' : '上級'} / {
                                computerSettings[id].personalityType === 'aggressive' ? '積極的' :
-                                computerSettings[id].personalityType === 'cautious' ? '慎重' : 'バランス型'})
+                                computerSettings[id].personalityType === 'cautious' ? '慎重' : 'バランス型'}）
                 </div>
               ))}
             </div>
@@ -1482,6 +1536,7 @@ function App() {
                   tabIndex={-1}
                   ref={setDialogRef}
                   style={{ outline: 'none' }}
+                  onClick={(e) => e.stopPropagation()}  // クリックの伝播を停止
                 >
                   <div className="dialog-header">
                     <h3>カードのスートを予想してください</h3>
@@ -1521,6 +1576,7 @@ function App() {
                   tabIndex={-1}
                   ref={setDialogRef}
                   style={{ outline: 'none' }}
+                  onClick={(e) => e.stopPropagation()}  // クリックの伝播を停止
                 >
                   <div className="dialog-header">
                     <h3>カードの数字を予想してください　</h3>
