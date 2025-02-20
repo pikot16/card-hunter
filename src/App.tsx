@@ -638,6 +638,19 @@ function App() {
       }
     ];
 
+    // ======================================================================
+    // テスト用の一時的な変更: 各プレイヤーの最初の12枚のカードを表向きにする
+    // この部分は動作確認後に削除してください
+    // ======================================================================
+    players.forEach(player => {
+      player.cards.forEach((card, index) => {
+        if (index < 12) {  // 最後の1枚（13枚目）以外を表向きに
+          card.isRevealed = true;
+        }
+      });
+    });
+    // ======================================================================
+
     setGameState({
       players,
       currentPlayerIndex: 0,
@@ -839,7 +852,8 @@ function App() {
     <div className="game-logs">
       <h3>
         ゲーム履歴
-        {gameState.gameStatus === 'finished' && gameState.logs[gameState.logs.length - 1]?.isCorrect && 
+        {(showComputerActionDialog || gameState.gameStatus === 'finished') && 
+         gameState.logs[gameState.logs.length - 1]?.isCorrect && 
           ' (Space / Enter で次へ)'}
       </h3>
       <div className="logs-container">
@@ -1409,22 +1423,27 @@ function App() {
                 <div className="game-board">
                   {gameState.players.map((player, playerIndex) => (
                     <div key={player.id} className="player-section">
-                      <h2 className={`${playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''} ${!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ? 'target-player' : ''}`}>
+                      <h2 className={`${gameState.gameStatus === 'playing' && playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''} 
+                                    ${gameState.gameStatus === 'playing' && !isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ? 'target-player' : ''}`}>
                         {player.name}
-                        {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー) ' : ''}
-                        {!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
-                          (gameState.currentPlayerIndex === 0 && !selectedCard && !showContinueDialog && !showSuitDialog && !showNumberDialog ? 
-                            <span>
-                              (予想対象) - 予想するカードを選んでください
-                              <CardSelectionHelp />
-                            </span> : 
-                            ' (予想対象)'
-                          )}
-                        {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
-                          <span className="incorrect-message">
-                            - 不正解... 表にするカードを選んでください
-                            <CardSelectionHelp />
-                          </span>}
+                        {gameState.gameStatus === 'playing' && (
+                          <>
+                            {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー) ' : ''}
+                            {!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
+                              (gameState.currentPlayerIndex === 0 && !selectedCard && !showContinueDialog && !showSuitDialog && !showNumberDialog ? 
+                                <span>
+                                  (予想対象) - 予想するカードを選んでください
+                                  <CardSelectionHelp />
+                                </span> : 
+                                ' (予想対象)'
+                              )}
+                            {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
+                              <span className="incorrect-message">
+                                - 不正解... 表にするカードを選んでください
+                                <CardSelectionHelp />
+                              </span>}
+                          </>
+                        )}
                       </h2>
                       <div className="player-cards">
                         {player.cards.map((card, cardIndex) => (
@@ -1484,22 +1503,27 @@ function App() {
           <div className="game-board">
             {gameState.players.map((player, playerIndex) => (
               <div key={player.id} className="player-section">
-                <h2 className={`${playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''} ${!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ? 'target-player' : ''}`}>
+                <h2 className={`${gameState.gameStatus === 'playing' && playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''} 
+                              ${gameState.gameStatus === 'playing' && !isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ? 'target-player' : ''}`}>
                   {player.name}
-                  {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー) ' : ''}
-                  {!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
-                    (gameState.currentPlayerIndex === 0 && !selectedCard && !showContinueDialog && !showSuitDialog && !showNumberDialog ? 
-                      <span>
-                        (予想対象) - 予想するカードを選んでください
-                        <CardSelectionHelp />
-                      </span> : 
-                      ' (予想対象)'
-                    )}
-                  {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
-                    <span className="incorrect-message">
-                      - 不正解... 表にするカードを選んでください
-                      <CardSelectionHelp />
-                    </span>}
+                  {gameState.gameStatus === 'playing' && (
+                    <>
+                      {playerIndex === gameState.currentPlayerIndex ? ' (現在のプレイヤー) ' : ''}
+                      {!isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) && 
+                        (gameState.currentPlayerIndex === 0 && !selectedCard && !showContinueDialog && !showSuitDialog && !showNumberDialog ? 
+                          <span>
+                            (予想対象) - 予想するカードを選んでください
+                            <CardSelectionHelp />
+                          </span> : 
+                          ' (予想対象)'
+                        )}
+                      {isSelectingOwnCard && playerIndex === gameState.currentPlayerIndex && 
+                        <span className="incorrect-message">
+                          - 不正解... 表にするカードを選んでください
+                          <CardSelectionHelp />
+                        </span>}
+                    </>
+                  )}
                 </h2>
                 <div className="player-cards">
                   {player.cards.map((card, cardIndex) => (
