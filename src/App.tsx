@@ -276,27 +276,6 @@ function App() {
       }
     ];
 
-    // ======================================================================
-    // テスト用の一時的な変更: プレイヤーごとに異なる範囲のカードを表向きにする
-    // プレイヤー1とComputer1: 1-12枚目が表
-    // Computer2とComputer3: 2-13枚目が表
-    // この部分は動作確認後に削除してください
-    // ======================================================================
-    players.forEach((player, playerIndex) => {
-      player.cards.forEach((card, cardIndex) => {
-        if (playerIndex <= 1) {  // プレイヤー1とComputer1
-          if (cardIndex < 12) {  // 1-12枚目を表向きに
-            card.isRevealed = true;
-          }
-        } else {  // Computer2とComputer3
-          if (cardIndex > 0) {  // 2-13枚目を表向きに
-            card.isRevealed = true;
-          }
-        }
-      });
-    });
-    // ======================================================================
-
     // 各プレイヤーのカードを昇順にソート
     players.forEach(player => {
       player.cards.sort((a, b) => a.number - b.number);
@@ -670,26 +649,10 @@ function App() {
       }
     ];
 
-    // ======================================================================
-    // テスト用の一時的な変更: プレイヤーごとに異なる範囲のカードを表向きにする
-    // プレイヤー1とComputer1: 1-12枚目が表
-    // Computer2とComputer3: 2-13枚目が表
-    // この部分は動作確認後に削除してください
-    // ======================================================================
-    players.forEach((player, playerIndex) => {
-      player.cards.forEach((card, cardIndex) => {
-        if (playerIndex <= 1) {  // プレイヤー1とComputer1
-          if (cardIndex < 12) {  // 1-12枚目を表向きに
-            card.isRevealed = true;
-          }
-        } else {  // Computer2とComputer3
-          if (cardIndex > 0) {  // 2-13枚目を表向きに
-            card.isRevealed = true;
-          }
-        }
-      });
+    // 各プレイヤーのカードを昇順にソート
+    players.forEach(player => {
+      player.cards.sort((a, b) => a.number - b.number);
     });
-    // ======================================================================
 
     setGameState({
       players,
@@ -1311,7 +1274,7 @@ function App() {
         {gameState.gameStatus === 'waiting' ? (
           <div className="setup-container">
             <div className="game-rules">
-              <h2>ゲームのルール</h2>
+              <h2>ゲームのルール（読むのが面倒だったらまずはやってみよう！）</h2>
               <div className="rules-content">
                 <h3>ゲームの概要</h3>
                 <ul>
@@ -1345,7 +1308,7 @@ function App() {
                   </li>
                   <li>結果フェーズ
                     <ul>
-                      <li>予想が当たった場合：
+                      <li>予想が当たった場合（ピンポンピンポンピンポン♪の効果音が鳴ります）：
                         <ul>
                           <li>予想したカードが表向きになります</li>
                           <li>2つの選択肢があります:
@@ -1356,7 +1319,7 @@ function App() {
                           </li>
                         </ul>
                       </li>
-                      <li>予想が外れた場合：
+                      <li>予想が外れた場合（ブッブー♪の効果音が鳴ります）：
                         <ul>
                           <li>自分の裏向きのカードを1枚選んで表にします</li>
                           <li>次のプレイヤーのターンになります</li>
@@ -1407,6 +1370,7 @@ function App() {
             
             <ComputerSettingsUI />
 
+            {/* テスト用の機能（一時的に非表示）
             <div className="test-controls" style={{ marginTop: '20px', padding: '10px', backgroundColor: '#3d3d3d', borderRadius: '8px' }}>
               <h3 style={{ color: '#8bc34a', marginBottom: '10px' }}>AIテスト</h3>
               {!isTestRunning ? (
@@ -1428,6 +1392,7 @@ function App() {
                 結果はブラウザのコンソールに表示されます
               </p>
             </div>
+            */}
 
             <button onClick={startGame} className="start-button">ゲームを開始</button>
             
