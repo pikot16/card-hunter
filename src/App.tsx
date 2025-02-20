@@ -869,9 +869,7 @@ function App() {
     <div className="game-logs">
       <h3>
         ゲーム履歴
-        {(showComputerActionDialog || gameState.gameStatus === 'finished') && 
-         gameState.logs[gameState.logs.length - 1]?.isCorrect && 
-          ' (Space / Enter で次へ)'}
+        {(showComputerActionDialog || (gameState.players[gameState.currentPlayerIndex]?.isComputer && computerAction)) && ' (Space / Enter で次へ)'}
       </h3>
       <div className="logs-container">
         {gameState.logs.slice().reverse().map((log, index) => (
@@ -972,8 +970,17 @@ function App() {
         }
       };
 
+      const handleTouchStart = (e: TouchEvent) => {
+        e.preventDefault();
+        handleContinue();
+      };
+
       window.addEventListener('keydown', handleKeyPress);
-      return () => window.removeEventListener('keydown', handleKeyPress);
+      window.addEventListener('touchstart', handleTouchStart);
+      return () => {
+        window.removeEventListener('keydown', handleKeyPress);
+        window.removeEventListener('touchstart', handleTouchStart);
+      };
     }, [computerAction]);
 
     return null;
