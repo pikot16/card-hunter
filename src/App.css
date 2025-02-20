@@ -434,9 +434,13 @@
   justify-content: center;
   align-items: center;
   margin-bottom: 20px;
-  cursor: move;
+  cursor: grab;
   user-select: none;
   position: relative;
+}
+
+.dialog-header:active {
+  cursor: grabbing;
 }
 
 .dialog-header h3 {
@@ -451,8 +455,12 @@
   color: #666;
   font-size: 20px;
   padding: 0 10px;
-  cursor: move;
+  cursor: grab;
   user-select: none;
+}
+
+.dialog-header .drag-handle:active {
+  cursor: grabbing;
 }
 
 .dialog-header .help-icon {
