@@ -455,6 +455,18 @@ function App() {
           willContinue: false  // ゲーム終了時は常にfalse
         });
         setShowComputerActionDialog(true);
+        
+        // ゲーム終了時の状態を即座に更新
+        const stateUpdate = checkGameState(updatedPlayers, gameState.currentPlayerIndex);
+        setGameState(prev => ({
+          ...prev,
+          players: updatedPlayers,
+          gameStatus: stateUpdate.gameStatus,
+          winner: stateUpdate.winner,
+          currentPlayerIndex: stateUpdate.nextPlayerIndex,
+          eliminationOrder: stateUpdate.eliminationOrder,
+          logs: updatedLogs
+        }));
       } else {
         setCorrectGuessPlayers(updatedPlayers);
         setShowContinueDialog(true);
@@ -814,11 +826,25 @@ function App() {
           });
 
           // ゲーム状態の更新
-          setGameState(prev => ({
-            ...prev,
-            logs: updatedLogs,
-            players: updatedPlayers
-          }));
+          if (isGameFinished) {
+            // ゲーム終了時は即座に状態を更新
+            const stateUpdate = checkGameState(updatedPlayers, gameState.currentPlayerIndex);
+            setGameState(prev => ({
+              ...prev,
+              logs: updatedLogs,
+              players: updatedPlayers,
+              gameStatus: stateUpdate.gameStatus,
+              winner: stateUpdate.winner,
+              currentPlayerIndex: stateUpdate.nextPlayerIndex,
+              eliminationOrder: stateUpdate.eliminationOrder
+            }));
+          } else {
+            setGameState(prev => ({
+              ...prev,
+              logs: updatedLogs,
+              players: updatedPlayers
+            }));
+          }
 
           setShowComputerActionDialog(true);
         } else {
@@ -1451,8 +1477,8 @@ function App() {
                 <div className="game-board">
                   {gameState.players.map((player, playerIndex) => (
                     <div key={player.id} className="player-section">
-                      <h2 className={`${gameState.gameStatus === 'playing' && playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''} 
-                                    ${gameState.gameStatus === 'playing' && !isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ? 'target-player' : ''}`}>
+                      <h2 className={`${(gameState.gameStatus === 'playing' && playerIndex === gameState.currentPlayerIndex) ? 'current-player' : ''} 
+                                    ${(gameState.gameStatus === 'playing' && !isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex)) ? 'target-player' : ''}`}>
                         {player.name}
                         {gameState.gameStatus === 'playing' && (
                           <>
@@ -1531,8 +1557,8 @@ function App() {
           <div className="game-board">
             {gameState.players.map((player, playerIndex) => (
               <div key={player.id} className="player-section">
-                <h2 className={`${gameState.gameStatus === 'playing' && playerIndex === gameState.currentPlayerIndex ? 'current-player' : ''} 
-                              ${gameState.gameStatus === 'playing' && !isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex) ? 'target-player' : ''}`}>
+                <h2 className={`${(gameState.gameStatus === 'playing' && playerIndex === gameState.currentPlayerIndex) ? 'current-player' : ''} 
+                              ${(gameState.gameStatus === 'playing' && !isSelectingOwnCard && playerIndex === getNextTargetPlayerIndex(gameState.currentPlayerIndex)) ? 'target-player' : ''}`}>
                   {player.name}
                   {gameState.gameStatus === 'playing' && (
                     <>
