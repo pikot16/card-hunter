@@ -234,48 +234,68 @@ function App() {
 
   // プレイヤーを初期化する関数を修正
   const initializePlayers = (playerName: string) => {
-    // カードデッキを作成
     const suits = ['hearts', 'diamonds', 'clubs', 'spades'] as const;
     const numbers = Array.from({ length: 13 }, (_, i) => (i + 1) as CardNumber);
     const allCards = suits.flatMap(suit =>
       numbers.map(number => ({ suit, number, isRevealed: false }))
     );
 
-    // デッキをシャッフル
-    const deck = shuffleCards(allCards);
-    
+    const shuffledCards = shuffleCards(allCards);
+    const cardsPerPlayer = 13;
+
     const players: Player[] = [
       {
         id: 0,
-        name: playerName || 'test',
-        cards: deck.slice(0, 13),
-        isComputer: false
+        name: playerName,
+        isComputer: false,
+        cards: shuffledCards.slice(0, cardsPerPlayer).sort((a, b) => a.number - b.number)
       },
       {
         id: 1,
         name: 'Computer 1',
-        cards: deck.slice(13, 26),
         isComputer: true,
         personalityType: computerSettings[1].personalityType,
-        skillLevel: computerSettings[1].skillLevel
+        skillLevel: computerSettings[1].skillLevel,
+        cards: shuffledCards.slice(cardsPerPlayer, cardsPerPlayer * 2).sort((a, b) => a.number - b.number)
       },
       {
         id: 2,
         name: 'Computer 2',
-        cards: deck.slice(26, 39),
         isComputer: true,
         personalityType: computerSettings[2].personalityType,
-        skillLevel: computerSettings[2].skillLevel
+        skillLevel: computerSettings[2].skillLevel,
+        cards: shuffledCards.slice(cardsPerPlayer * 2, cardsPerPlayer * 3).sort((a, b) => a.number - b.number)
       },
       {
         id: 3,
         name: 'Computer 3',
-        cards: deck.slice(39, 52),
         isComputer: true,
         personalityType: computerSettings[3].personalityType,
-        skillLevel: computerSettings[3].skillLevel
+        skillLevel: computerSettings[3].skillLevel,
+        cards: shuffledCards.slice(cardsPerPlayer * 3, cardsPerPlayer * 4).sort((a, b) => a.number - b.number)
       }
     ];
+
+    // ======================================================================
+    // テスト用の一時的な変更: プレイヤーごとに異なる範囲のカードを表向きにする
+    // プレイヤー1とComputer1: 1-12枚目が表
+    // Computer2とComputer3: 2-13枚目が表
+    // この部分は動作確認後に削除してください
+    // ======================================================================
+    players.forEach((player, playerIndex) => {
+      player.cards.forEach((card, cardIndex) => {
+        if (playerIndex <= 1) {  // プレイヤー1とComputer1
+          if (cardIndex < 12) {  // 1-12枚目を表向きに
+            card.isRevealed = true;
+          }
+        } else {  // Computer2とComputer3
+          if (cardIndex > 0) {  // 2-13枚目を表向きに
+            card.isRevealed = true;
+          }
+        }
+      });
+    });
+    // ======================================================================
 
     // 各プレイヤーのカードを昇順にソート
     players.forEach(player => {
@@ -639,13 +659,21 @@ function App() {
     ];
 
     // ======================================================================
-    // テスト用の一時的な変更: 各プレイヤーの最初の12枚のカードを表向きにする
+    // テスト用の一時的な変更: プレイヤーごとに異なる範囲のカードを表向きにする
+    // プレイヤー1とComputer1: 1-12枚目が表
+    // Computer2とComputer3: 2-13枚目が表
     // この部分は動作確認後に削除してください
     // ======================================================================
-    players.forEach(player => {
-      player.cards.forEach((card, index) => {
-        if (index < 12) {  // 最後の1枚（13枚目）以外を表向きに
-          card.isRevealed = true;
+    players.forEach((player, playerIndex) => {
+      player.cards.forEach((card, cardIndex) => {
+        if (playerIndex <= 1) {  // プレイヤー1とComputer1
+          if (cardIndex < 12) {  // 1-12枚目を表向きに
+            card.isRevealed = true;
+          }
+        } else {  // Computer2とComputer3
+          if (cardIndex > 0) {  // 2-13枚目を表向きに
+            card.isRevealed = true;
+          }
         }
       });
     });
