@@ -6,15 +6,10 @@ const audioCache: { [key: string]: HTMLAudioElement } = {
   incorrect: new Audio('./sounds/incorrect.mp3'),
 };
 
-// 音量設定
-const setVolume = (volume: number) => {
-  Object.values(audioCache).forEach(audio => {
-    audio.volume = Math.max(0, Math.min(1, volume));
-  });
-};
-
-// デフォルトの音量を設定
-setVolume(0.5);
+// 音量を30%に設定
+Object.values(audioCache).forEach(audio => {
+  audio.volume = 0.3;
+});
 
 // 正解音を再生
 export const playCorrectSound = () => {
